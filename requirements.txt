@@ -72,7 +72,7 @@ rpds-py==0.28.0
 
 # --- Database ---
 SQLAlchemy==2.0.23
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 
 # --- Deployment Utilities ---
 click==8.2.1
