@@ -37,7 +37,7 @@ numpy==2.3.4
 pandas==2.3.3
 scipy==1.15.3
 scikit-learn==1.7.2
-pyarrow==23.0.0
+pyarrow==22.0.0
 
 # --- Auth, Security & Utilities ---
 bcrypt==4.0.1
