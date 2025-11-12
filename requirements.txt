@@ -6,7 +6,7 @@ Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.1
 Werkzeug==3.0.3
 
-# Dash web visualization
+# Dash visualization
 dash==2.16.1
 dash-core-components==2.0.0
 dash-html-components==2.0.0
@@ -33,13 +33,11 @@ branca==0.8.2
 xyzservices==2025.10.0
 
 # --- Data & Analytics ---
-numpy==1.26.4
+numpy==2.3.4
 pandas==2.3.3
 scipy==1.15.3
 scikit-learn==1.7.2
-pyarrow==21.0.0
-matplotlib-inline==0.2.1
-altair==5.5.0
+pyarrow==23.0.0
 
 # --- Auth, Security & Utilities ---
 bcrypt==4.0.1
@@ -60,7 +58,7 @@ certifi==2025.4.26
 idna==3.10
 charset-normalizer==3.4.2
 
-# --- Logging, Serialization, and Misc ---
+# --- Logging, Serialization & Misc ---
 PyYAML==6.0.3
 pytz==2025.2
 tzdata==2025.2
