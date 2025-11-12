@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>All Sites</h2>
+
+  {% if sites %}
+    <ul>
+      {% for s in sites %}
+        <li>
+          <strong>{{ s.code }}</strong> — {{ s.name }}
+          <a href="{{ url_for('view_site', site_id=s.id) }}">Open</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No sites have been added yet.</p>
+  {% endif %}
+
+  <hr>
+
+  <p>
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+      <a href="{{ url_for('new_site') }}">➕ Add New Site</a> |
+    {% endif %}
+    <a href="{{ url_for('new_carcass') }}">🧍 Record Carcass</a> |
+    <a href="{{ url_for('export_samples') }}">📦 Export Samples CSV</a>
+  </p>
+
+{% endblock %}

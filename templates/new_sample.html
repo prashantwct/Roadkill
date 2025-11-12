@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>New Sample for Carcass {{ c.id }} ({{ c.species }})</h2>
+  <form method="post">
+    <label>Sample type (Brain/Saliva/Swab/Blood)
+      <input name="sample_type" required>
+    </label>
+    <input type="hidden" name="collected_at">
+    <label>Collected by
+      <input name="collected_by" value="{{ current_user.username }}" readonly>
+    </label>
+    <label>Storage <input name="storage" placeholder="e.g. -80°C freezer"></label>
+    <label>Notes <input name="notes"></label>
+    <button type="submit">Create Sample</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Admin Dashboard</h2>
+
+<div class="stats">
+  <ul>
+    <li><strong>Total Users:</strong> {{ total_users }}</li>
+    <li><strong>Pending Approvals:</strong> {{ pending_users }}</li>
+    <li><strong>Total Sites:</strong> {{ total_sites }}</li>
+    <li><strong>Total Carcasses:</strong> {{ total_carcasses }}</li>
+    <li><strong>Total Samples:</strong> {{ total_samples }}</li>
+  </ul>
+</div>
+
+<div class="admin-actions">
+  <p><a href="{{ url_for('manage_users') }}">👥 Manage Users</a></p>
+  <p><a href="{{ url_for('new_site') }}">➕ Add New Site</a></p>
+  <p><a href="{{ url_for('export_samples') }}">📦 Export Samples (CSV)</a></p>
+</div>
+
+<style>
+.stats ul {
+  list-style: none;
+  padding: 0;
+}
+.stats li {
+  margin: 4px 0;
+  font-size: 16px;
+}
+.admin-actions a {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 6px 10px;
+  background: #eef;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.admin-actions a:hover {
+  background: #cce;
+}
+</style>
+
+{% endblock %}

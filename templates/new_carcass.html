@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Record Carcass</h2>
+  <form method="post">
+    <label>Site
+      <select name="site_id" required>
+        {% for s in sites %}
+          <option value="{{ s.id }}" {% if s.id == site_id %}selected{% endif %}>
+            {{ s.code }} - {{ s.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Species <input name="species" required></label>
+    <input type="hidden" name="datetime">
+    <input type="hidden" name="latitude">
+    <input type="hidden" name="longitude">
+    <label>Notes <input name="notes"></label>
+    <button type="submit">Save Carcass</button>
+  </form>
+{% endblock %}
