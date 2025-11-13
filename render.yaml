@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: roadkill
+    env: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python -m gunicorn app:app -b 0.0.0.0:$PORT
+    pythonVersion: 3.13.4
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000
