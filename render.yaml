@@ -1,9 +1,9 @@
+# render.yaml
 services:
   - type: web
-    name: roadkill-app
+    name: app
     env: python
+    pythonVersion: "3.10.14"
     buildCommand: "pip install -r requirements.txt"
     startCommand: ""
-
-
-
+    region: oregon
