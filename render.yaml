@@ -1,11 +1,10 @@
 services:
   - type: web
-    name: roadkill
+    name: flask-app
     env: python
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: python -m gunicorn app:app -b 0.0.0.0:$PORT
-    pythonVersion: 3.13.4
-    autoDeploy: true
-    envVars:
-      - key: PORT
-        value: 8000
+    buildCommand: |
+      pip install --upgrade pip
+      pip install gunicorn
+      pip install -r requirements.txt
+    startCommand: python -m gunicorn app:app
+
