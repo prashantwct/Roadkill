@@ -237,7 +237,7 @@ def register_routes(app):
     @app.route('/change_password', methods=['GET', 'POST'])
     @login_required
     def change_password():
-        if request.method == 'POST']
+        if request.method == 'POST':
         # Continue password change
         
         if request.method == 'POST':
