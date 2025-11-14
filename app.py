@@ -25,18 +25,27 @@ def ist_now():
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'replace-this-with-a-secure-random-string')
 
-# Use DATABASE_URL from environment if present, otherwise fall back to local sqlite for dev
-_db_url = os.environ.get('DATABASE_URL')
-if _db_url:
-    # When using psycopg (psycopg v3) with SQLAlchemy 2.x the scheme sometimes expected is postgresql+psycopg
-    if _db_url.startswith('postgresql://') and not _db_url.startswith('postgresql+'): 
-        _db_url = _db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+# --- FIX: Reliable Render database URL loader ---
+db_url = (
+    os.environ.get("DATABASE_URL")
+    or os.environ.get("POSTGRES_URL")
+    or os.environ.get("POSTGRESQL_URL")
+    or os.environ.get("EXTERNAL_DATABASE_URL")
+)
+
+if not db_url:
+    raise RuntimeError("DATABASE_URL not found in environment variables")
+
+# Render sometimes gives old scheme postgres://, fix that
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+# ------------------------------------------------
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
+
 
 # -------------------- Extensions --------------------
 db = SQLAlchemy()
