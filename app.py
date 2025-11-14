@@ -1,16 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from sqlalchemy.exc import IntegrityError
-import os, uuid, qrcode, csv
+import os, uuid, qrcode, csv, base64
 from io import StringIO, BytesIO
 
 # -------------------- Setup --------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'roadkill.db')
+# keep a labels dir for compatibility but we'll store QR bytes in DB
 LABEL_DIR = os.path.join(BASE_DIR, 'static', 'labels')
 os.makedirs(LABEL_DIR, exist_ok=True)
 
@@ -23,17 +24,24 @@ def ist_now():
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'replace-this-with-a-secure-random-string')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+
+# Use DATABASE_URL from environment if present, otherwise fall back to local sqlite for dev
+_db_url = os.environ.get('DATABASE_URL')
+if _db_url:
+    # When using psycopg (psycopg v3) with SQLAlchemy 2.x the scheme sometimes expected is postgresql+psycopg
+    if _db_url.startswith('postgresql://') and not _db_url.startswith('postgresql+'): 
+        _db_url = _db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 
-db = SQLAlchemy(app)
-with app.app_context():
-    db.create_all()
-
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+# -------------------- Extensions --------------------
+db = SQLAlchemy()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
 
 # -------------------- Models --------------------
 class User(db.Model, UserMixin):
@@ -74,23 +82,40 @@ class Sample(db.Model):
     collected_at = db.Column(db.DateTime, default=ist_now)
     storage = db.Column(db.String(120))
     notes = db.Column(db.Text)
-    qr_path = db.Column(db.String(300))
+    # store raw PNG bytes inside Postgres as BYTEA / LargeBinary
+    qr_bytes = db.Column(db.LargeBinary)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -------------------- Helpers --------------------
-def init_db():
-    """Create database and default admin user"""
+def generate_qr_bytes(label: str) -> bytes:
+    """Generate a PNG image for the label and return raw bytes."""
+    img = qrcode.make(label)
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return buf.read()
+
+
+def init_db(app):
+    """Create database tables and a default admin user if missing."""
     with app.app_context():
         db.create_all()
-        if not User.query.filter_by(username='admin').first():
-            pw = bcrypt.generate_password_hash('admin').decode('utf-8')
-            admin = User(username='admin', pw_hash=pw, full_name='Administrator',
-                         role='admin', is_approved=True)
-            db.session.add(admin)
-            db.session.commit()
+        try:
+            # ensure admin exists
+            if not User.query.filter_by(username='admin').first():
+                pw = bcrypt.generate_password_hash('admin').decode('utf-8')
+                admin = User(username='admin', pw_hash=pw, full_name='Administrator',
+                             role='admin', is_approved=True)
+                db.session.add(admin)
+                db.session.commit()
+        except Exception:
+            # don't crash startup on race conditions or locked DB; log and continue
+            import traceback
+            traceback.print_exc()
+
 
 def is_admin():
     return current_user.is_authenticated and current_user.role == 'admin'
@@ -107,12 +132,15 @@ def make_label(site_code, dt, seq, sample_type):
     rand = uuid.uuid4().hex[:4].upper()
     return f"{site_code}-{date_str}-{seq_str}-{type_code}-{rand}"
 
-def generate_qr_for_label(label):
-    img = qrcode.make(label)
-    fname = secure_filename(f"{label}.png")
-    path = os.path.join(LABEL_DIR, fname)
-    img.save(path)
-    return path
+# -------------------- App factory-ish init --------------------
+# bind extensions to app
+db.init_app(app)
+bcrypt.init_app(app)
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Create tables and admin at startup (safe for single-instance/small apps)
+init_db(app)
 
 # -------------------- Routes --------------------
 @app.route('/')
@@ -181,17 +209,14 @@ def change_password():
         new_pw = request.form.get('new_password')
         confirm_pw = request.form.get('confirm_password')
 
-        # Validate current password
         if not bcrypt.check_password_hash(current_user.pw_hash, current_pw):
             flash('Current password is incorrect.')
             return redirect(url_for('change_password'))
 
-        # Validate new passwords match
         if new_pw != confirm_pw:
             flash('New passwords do not match.')
             return redirect(url_for('change_password'))
 
-        # Update password
         hashed_pw = bcrypt.generate_password_hash(new_pw).decode('utf-8')
         current_user.pw_hash = hashed_pw
         db.session.commit()
@@ -200,7 +225,6 @@ def change_password():
         return redirect(url_for('index'))
 
     return render_template('change_password.html')
-
 
 # --- Admin Dashboard ---
 @app.route('/admin')
@@ -262,7 +286,6 @@ def delete_user(user_id):
     flash(f"User {u.username} deleted.")
     return redirect(url_for('manage_users'))
 
-# --- Admin Reset User Password ---
 @app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
 @login_required
 def reset_user_password(user_id):
@@ -281,8 +304,6 @@ def reset_user_password(user_id):
     db.session.commit()
     flash(f"Password for {u.username} has been reset successfully.")
     return redirect(url_for('manage_users'))
-
-
 
 # --- Site management ---
 @app.route('/sites/new', methods=['GET', 'POST'])
@@ -354,12 +375,12 @@ def new_sample(carcass_id):
         seq = next_sequence_for_site_date(c.site.code, collected_at.strftime('%Y%m%d'))
         label = make_label(c.site.code, collected_at, seq, sample_type)
         suid = str(uuid.uuid4())
-        qr_path = generate_qr_for_label(label)
+        qr = generate_qr_bytes(label)
 
         s = Sample(carcass_id=carcass_id, uuid=suid, label=label,
                    sample_type=sample_type, collected_by=current_user.username,
                    collected_at=collected_at, storage=request.form.get('storage'),
-                   notes=request.form.get('notes'), qr_path=qr_path)
+                   notes=request.form.get('notes'), qr_bytes=qr)
         db.session.add(s)
         db.session.commit()
         flash(f'Sample {label} created successfully')
@@ -371,6 +392,21 @@ def new_sample(carcass_id):
 def view_sample(sample_id):
     s = Sample.query.get_or_404(sample_id)
     return render_template('sample.html', s=s)
+
+# Endpoint to serve QR image bytes directly
+@app.route('/sample/<int:sample_id>/qr')
+def sample_qr(sample_id):
+    s = Sample.query.get_or_404(sample_id)
+    if not s.qr_bytes:
+        # regenerate on demand
+        if not s.label:
+            abort(404)
+        s.qr_bytes = generate_qr_bytes(s.label)
+        db.session.commit()
+
+    buf = BytesIO(s.qr_bytes)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', as_attachment=False, download_name=f"{s.label}.png")
 
 # --- Export samples as CSV ---
 @app.route('/samples/export')
@@ -385,7 +421,7 @@ def export_samples():
             s.label, s.uuid, s.sample_type, s.collected_by,
             s.collected_at.strftime('%Y-%m-%d %H:%M:%S') + " IST",
             s.storage, s.notes, s.carcass_id,
-            s.carcass.site.code, s.carcass.species
+            s.carcass.site.code if s.carcass and s.carcass.site else '', s.carcass.species if s.carcass else ''
         ])
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8'))
@@ -401,5 +437,6 @@ with app.app_context():
     print("=========================\n")
 
 if __name__ == '__main__':
-    init_db()
+    # local run creates db & admin then starts dev server
+    init_db(app)
     app.run(debug=True)
