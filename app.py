@@ -23,8 +23,7 @@ def ist_now():
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'replace-this-with-a-secure-random-string')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(postgresql://neondb_owner:npg_JkOv8tRzqmp0@ep-crimson-night-a48lvwz1-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
-)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 
