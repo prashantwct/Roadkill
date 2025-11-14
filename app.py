@@ -5,6 +5,8 @@ import os
 import uuid
 import qrcode
 import csv
+import random
+import string
 from io import StringIO, BytesIO
 from datetime import datetime, timedelta
 
@@ -62,6 +64,9 @@ class Site(db.Model):
 
 class Carcass(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    # NEW: 4-character unique alphanumeric code
+    code = db.Column(db.String(4), unique=True, nullable=False)
+
     site_id = db.Column(db.Integer, db.ForeignKey('site.id'))
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     species = db.Column(db.String(140))
@@ -116,8 +121,17 @@ def setup_database(app):
             print("Warning: init_db() failed:", e)
 
 # ========================
-# HELPERS FOR LABELS
+# HELPERS FOR LABELS & CODES
 # ========================
+
+def generate_unique_carcass_code():
+    """Return a unique 4-char uppercase alphanumeric code (A-Z,0-9)."""
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(random.choices(chars, k=4))
+        # Check uniqueness
+        if not Carcass.query.filter_by(code=code).first():
+            return code
 
 def next_sequence_for_site_date(site_code, date_str):
     like_prefix = f"{site_code}-{date_str}-%"
@@ -134,7 +148,7 @@ def make_label(site_code, dt, seq, sample_type):
 def generate_qr_for_label(label):
     img = qrcode.make(label)
     fname = secure_filename(f"{label}.png")
-    path = os.path.join(current_app.config['LABEL_DIR'], fname)
+    path = os.path.join(current_app.config.get('LABEL_DIR', os.path.join(BASE_DIR,'static','labels')), fname)
     img.save(path)
     return path
 
@@ -370,6 +384,7 @@ def register_routes(app):
             )
 
             c = Carcass(
+                code=generate_unique_carcass_code(),
                 site_id=site_id,
                 reporter_id=current_user.id,
                 species=species,
@@ -441,7 +456,7 @@ def register_routes(app):
 
         cw.writerow([
             'label','uuid','sample_type','collected_by','collected_at_IST',
-            'storage','notes','carcass_id','site_code','species'
+            'storage','notes','carcass_id','carcass_code','site_code','species'
         ])
 
         for s in samples:
@@ -454,8 +469,9 @@ def register_routes(app):
                 s.storage,
                 s.notes,
                 s.carcass_id,
-                s.carcass.site.code,
-                s.carcass.species
+                s.carcass.code if s.carcass else '',
+                s.carcass.site.code if s.carcass and s.carcass.site else '',
+                s.carcass.species if s.carcass else ''
             ])
 
         output = BytesIO()
@@ -478,4 +494,3 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
