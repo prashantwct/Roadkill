@@ -238,9 +238,6 @@ def register_routes(app):
     @login_required
     def change_password():
         if request.method == 'POST':
-        # Continue password change
-        
-        if request.method == 'POST':
             current_pw = request.form.get('current_password')
             new_pw = request.form.get('new_password')
             confirm_pw = request.form.get('confirm_password')
@@ -463,7 +460,6 @@ def register_routes(app):
 
         output = BytesIO()
         output.write(si.getvalue().encode('utf-8'))
-
         output.seek(0)
         si.close()
 
@@ -482,3 +478,4 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
