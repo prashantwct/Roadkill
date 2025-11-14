@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
   <h2>Carcass #{{ c.id }} ({{ c.species }})</h2>
+
+  <!-- NEW: Carcass Code -->
+  <p><b>Carcass Code:</b> {{ c.code }}</p>
+
   <p><b>Site:</b> {{ c.site.code }} - {{ c.site.name }}</p>
   <p><b>Reported by:</b> {{ c.reporter.username }}</p>
   <p><b>Found:</b> {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') }}</p>
