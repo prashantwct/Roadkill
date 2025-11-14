@@ -1,10 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
   <h2>Sample {{ s.label }}</h2>
+
   <p><b>UUID:</b> {{ s.uuid }}</p>
   <p><b>Type:</b> {{ s.sample_type }}</p>
   <p><b>Collected by:</b> {{ s.collected_by }} at {{ s.collected_at.strftime('%Y-%m-%d %H:%M') }}</p>
   <p><b>Storage:</b> {{ s.storage }}</p>
-  <p><b>Carcass:</b> <a href="{{ url_for('view_carcass', carcass_id=s.carcass.id) }}">#{{ s.carcass.id }}</a></p>
-  <p><img src="{{ url_for('static', filename='labels/' + s.label + '.png') }}" width="200" alt="QR label"></p>
+
+  <!-- NEW: Carcass Code -->
+  <p>
+    <b>Carcass:</b>
+    <a href="{{ url_for('view_carcass', carcass_id=s.carcass.id) }}">
+      #{{ s.carcass.id }} (Code: {{ s.carcass.code }})
+    </a>
+  </p>
+
+  <p>
+    <img src="{{ url_for('static', filename='labels/' + s.label + '.png') }}"
+         width="200" alt="QR label">
+  </p>
 {% endblock %}
+
