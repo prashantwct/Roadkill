@@ -28,8 +28,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 
 db = SQLAlchemy(app)
-with app.app_context():
-    db.create_all()
+
+def setup_database():
+    with app.app_context():
+        db.create_all()
+        init_db()
+
 
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
@@ -395,11 +399,19 @@ def export_samples():
     return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
 
 # -------------------- Run --------------------
-with app.app_context():
-    print("\n=== Registered Routes ===")
-    print(app.url_map)
-    print("=========================\n")
 
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
+db = SQLAlchemy(app)
+
+def setup_database():
+    with app.app_context():
+        db.create_all()
+        init_db()
+
+def create_app():
+    setup_database()
+    return app
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
