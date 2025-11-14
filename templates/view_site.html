@@ -10,6 +10,8 @@
   <ul>
     {% for c in carcasses %}
       <li>
+        <!-- NEW: Carcass Code included -->
+        <strong>{{ c.code }}</strong> —
         <a href="{{ url_for('view_carcass', carcass_id=c.id) }}">
           {{ c.species or 'Unknown species' }}
         </a>
