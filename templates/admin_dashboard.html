@@ -25,15 +25,16 @@
 
 <hr>
 
-<!-- NEW: Highlights -->
+<!-- RECENT CARCASSES SECTION -->
 <h3>Recent Carcasses</h3>
 {% if recent_carcasses %}
   <ul>
     {% for c in recent_carcasses %}
       <li>
-        <strong>{{ c.code }}</strong> —
-        {{ c.species or 'Unknown' }} at {{ c.site.code }}
-        on {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') }}
+        <strong>{{ c.code or '—' }}</strong> —
+        {{ c.species or 'Unknown' }}
+        at {{ c.site.code if c.site else '—' }}
+        on {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') if c.datetime_found else '—' }}
         <a href="{{ url_for('view_carcass', carcass_id=c.id) }}">View</a>
       </li>
     {% endfor %}
@@ -44,13 +45,14 @@
 
 <hr>
 
+<!-- RECENT SAMPLES SECTION -->
 <h3>Recent Samples</h3>
 {% if recent_samples %}
   <ul>
     {% for s in recent_samples %}
       <li>
         {{ s.label }}
-        (Carcass Code <strong>{{ s.carcass.code }}</strong>)
+        (Carcass Code <strong>{{ s.carcass.code if s.carcass else '—' }}</strong>)
         <a href="{{ url_for('view_sample', sample_id=s.id) }}">View</a>
       </li>
     {% endfor %}
