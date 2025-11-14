@@ -16,4 +16,4 @@ python-dotenv==1.0.0
 
 gunicorn==21.2.0
 qrcode[pil]
-psycopg2-binary==2.9.9
+psycopg[binary]==3.1.18
