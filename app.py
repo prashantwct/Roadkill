@@ -274,12 +274,29 @@ def register_routes(app):
         return render_template('change_password.html')
 
     # ---------- ADMIN DASHBOARD ----------
+      # ---------- ADMIN DASHBOARD ----------
     @app.route('/admin')
     @login_required
     def admin_dashboard():
         if not is_admin():
             flash('Admin access required.')
             return redirect(url_for('index'))
+
+        # Recent carcasses: newest first (by datetime_found)
+        recent_carcasses = (
+            Carcass.query
+            .order_by(Carcass.datetime_found.desc())
+            .limit(5)
+            .all()
+        )
+
+        # Recent samples: newest first (by collected_at)
+        recent_samples = (
+            Sample.query
+            .order_by(Sample.collected_at.desc())
+            .limit(5)
+            .all()
+        )
 
         return render_template(
             'admin_dashboard.html',
@@ -288,7 +305,10 @@ def register_routes(app):
             total_sites=Site.query.count(),
             total_carcasses=Carcass.query.count(),
             total_samples=Sample.query.count(),
+            recent_carcasses=recent_carcasses,
+            recent_samples=recent_samples
         )
+
 
     # ---------- MANAGE USERS ----------
     @app.route('/admin/users')
