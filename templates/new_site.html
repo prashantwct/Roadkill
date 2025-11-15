@@ -1,10 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Add New Site</h2>
-  <form method="post">
-    <label>Site Name <input name="name" required></label>
-    <label>Site Code (unique) <input name="code" required></label>
-    <label>Description <input name="description"></label>
-    <button type="submit">Save Site</button>
-  </form>
+
+<div class="row justify-content-center mt-3">
+  <div class="col-lg-6">
+
+    <div class="card shadow-sm p-4">
+
+      <h3 class="mb-3">
+        <i class="fa-solid fa-map-location-dot me-2"></i>
+        Add New Site
+      </h3>
+
+      <form method="POST">
+
+        <!-- SITE NAME -->
+        <div class="mb-3">
+          <label class="form-label">Site Name</label>
+          <input name="name"
+                 class="form-control"
+                 placeholder="e.g., Forest Range 12"
+                 required>
+        </div>
+
+        <!-- SITE CODE -->
+        <div class="mb-3">
+          <label class="form-label">Site Code (Unique)</label>
+          <input name="code"
+                 class="form-control"
+                 placeholder="e.g., FR12"
+                 required>
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea name="description"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Optional site details"></textarea>
+        </div>
+
+        <!-- SUBMIT -->
+        <button class="btn btn-primary w-100">
+          <i class="fa-solid fa-plus me-1"></i>
+          Save Site
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
