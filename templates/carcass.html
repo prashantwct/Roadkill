@@ -1,24 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Carcass #{{ c.id }} ({{ c.species }})</h2>
 
-  <!-- NEW: Carcass Code -->
-  <p><b>Carcass Code:</b> {{ c.code }}</p>
+<div class="card shadow-sm">
+  <div class="card-body">
 
-  <p><b>Site:</b> {{ c.site.code }} - {{ c.site.name }}</p>
-  <p><b>Reported by:</b> {{ c.reporter.username }}</p>
-  <p><b>Found:</b> {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') }}</p>
-  <p><b>GPS:</b> {{ c.latitude }}, {{ c.longitude }}</p>
-  <p><b>Notes:</b> {{ c.notes }}</p>
+    <h3 class="mb-3">
+      <i class="fa-solid fa-skull-crossbones me-1"></i>
+      Carcass Details
+    </h3>
 
-  <h3>Samples</h3>
-  <ul>
+    <div class="row mb-2">
+      <div class="col-md-6">
+        <p class="mb-1"><strong>Carcass Code:</strong> {{ c.code }}</p>
+        <p class="mb-1"><strong>Species:</strong> {{ c.species or "Unknown" }}</p>
+        <p class="mb-1">
+          <strong>Site:</strong> {{ c.site.code }} – {{ c.site.name }}
+        </p>
+        <p class="mb-1"><strong>Reported by:</strong> {{ c.reporter.username }}</p>
+      </div>
+
+      <div class="col-md-6">
+        <p class="mb-1">
+          <strong>Found:</strong> {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') }}
+        </p>
+        <p class="mb-1">
+          <strong>GPS:</strong> {{ c.latitude }}, {{ c.longitude }}
+        </p>
+        <p class="mb-1">
+          <strong>Notes:</strong> {{ c.notes or "—" }}
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Samples Section -->
+<h4 class="mt-4">Samples</h4>
+
+{% if c.samples %}
+  <div class="list-group mb-3">
     {% for s in c.samples %}
-      <li>{{ s.sample_type }} — {{ s.label }}
-        <a href="{{ url_for('view_sample', sample_id=s.id) }}">View</a>
-      </li>
-    {% endfor %}
-  </ul>
+      <a href="{{ url_for('view_sample', sample_id=s.id) }}" 
+         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
 
-  <p><a href="{{ url_for('new_sample', carcass_id=c.id) }}">Add Sample</a></p>
+        <div>
+          <strong>{{ s.sample_type or "Sample" }}</strong>
+          <div class="text-muted small">{{ s.label }}</div>
+        </div>
+
+        <i class="fa-solid fa-chevron-right"></i>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">No samples recorded.</p>
+{% endif %}
+
+<a href="{{ url_for('new_sample', carcass_id=c.id) }}" class="btn btn-primary">
+  <i class="fa-solid fa-plus me-1"></i> Add Sample
+</a>
+
 {% endblock %}
