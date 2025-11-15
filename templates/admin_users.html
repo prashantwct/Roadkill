@@ -1,76 +1,93 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>User Management</h2>
+<div class="container my-4">
 
-<table border="1" cellpadding="6" cellspacing="0">
-  <thead>
-    <tr style="background:#f0f0f0;">
-      <th>Username</th>
-      <th>Full Name</th>
-      <th>Role</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for u in users %}
-    <tr>
-      <td>{{ u.username }}</td>
-      <td>{{ u.full_name or '—' }}</td>
-      <td>{{ u.role }}</td>
-      <td>
-        {% if u.is_approved %}
-          ✅ Approved
-        {% else %}
-          ⏳ Pending
-        {% endif %}
-      </td>
-      <td>
-        {% if not u.is_approved %}
-          <a href="{{ url_for('approve_user', user_id=u.id) }}">Approve</a> |
-        {% endif %}
-        
-        <form method="POST" action="{{ url_for('reset_user_password', user_id=u.id) }}" style="display:inline;">
-          <input type="password" name="new_password" placeholder="New password" required>
-          <button type="submit">Reset</button>
-        </form>
-        
-        {% if u.username != 'admin' %}
-          | <a href="{{ url_for('delete_user', user_id=u.id) }}" onclick="return confirm('Delete this user?');">Delete</a>
-        {% endif %}
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">User Management</h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+      ← Back to Dashboard
+    </a>
+  </div>
 
-<p><a href="{{ url_for('admin_dashboard') }}">← Back to Dashboard</a></p>
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
 
-<style>
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-th, td {
-  text-align: left;
-}
-input[type="password"] {
-  width: 120px;
-  padding: 3px;
-  margin-right: 5px;
-}
-button {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-button:hover {
-  background: #45a049;
-}
-</style>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Role</th>
+              <th>Status</th></th>
+              <th style="width: 230px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+
+          {% for u in users %}
+            <tr>
+              <td>{{ u.username }}</td>
+              <td>{{ u.full_name or '—' }}</td>
+              <td class="text-capitalize">{{ u.role }}</td>
+
+              <td>
+                {% if u.is_approved %}
+                  <span class="badge bg-success">Approved</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Pending</span>
+                {% endif %}
+              </td>
+
+              <td>
+
+                <div class="d-flex flex-wrap gap-1">
+
+                  {% if not u.is_approved %}
+                    <a href="{{ url_for('approve_user', user_id=u.id) }}"
+                       class="btn btn-sm btn-outline-success">
+                      Approve
+                    </a>
+                  {% endif %}
+
+                  <!-- Reset password form -->
+                  <form action="{{ url_for('reset_user_password', user_id=u.id) }}"
+                        method="POST"
+                        class="d-flex align-items-center gap-1">
+
+                    <input type="password"
+                           name="new_password"
+                           placeholder="New password"
+                           class="form-control form-control-sm"
+                           style="width:120px;"
+                           required>
+
+                    <button class="btn btn-sm btn-outline-primary">
+                      Reset
+                    </button>
+                  </form>
+
+                  {% if u.username != 'admin' %}
+                    <a href="{{ url_for('delete_user', user_id=u.id) }}"
+                       onclick="return confirm('Delete this user?');"
+                       class="btn btn-sm btn-outline-danger">
+                      Delete
+                    </a>
+                  {% endif %}
+                </div>
+
+              </td>
+            </tr>
+          {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div>
 
 {% endblock %}
