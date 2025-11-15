@@ -1,32 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>All Sites</h2>
 
-  {% if sites %}
-    <ul>
-      {% for s in sites %}
-        <li>
-          <strong>{{ s.code }}</strong> — {{ s.name }}
+<h3 class="mb-4">
+  <i class="fa-solid fa-map-location-dot me-2"></i>
+  All Sites
+</h3>
 
-          <!-- NEW: Carcass count -->
-          ({{ s.carcasses|length }} carcasses)
+{% if sites %}
+  <div class="row g-3">
 
-          <a href="{{ url_for('view_site', site_id=s.id) }}">Open</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No sites have been added yet.</p>
+    {% for s in sites %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100">
+
+          <div class="card-body">
+            <h5 class="card-title mb-1">
+              <span class="badge bg-primary">{{ s.code }}</span>
+              {{ s.name }}
+            </h5>
+
+            <p class="text-muted small mb-2">
+              {{ s.carcasses|length }} carcasses recorded
+            </p>
+
+          </div>
+
+          <div class="card-footer bg-white text-end">
+            <a href="{{ url_for('view_site', site_id=s.id) }}" class="btn btn-outline-primary btn-sm">
+              <i class="fa-solid fa-folder-open me-1"></i> Open
+            </a>
+          </div>
+
+        </div>
+      </div>
+    {% endfor %}
+
+  </div>
+
+{% else %}
+  <p class="text-muted">No sites have been added yet.</p>
+{% endif %}
+
+<hr class="my-4">
+
+<div class="d-flex flex-wrap gap-2">
+
+  {% if current_user.is_authenticated and current_user.role == 'admin' %}
+    <a href="{{ url_for('new_site') }}" class="btn btn-primary">
+      <i class="fa-solid fa-plus me-1"></i> Add New Site
+    </a>
   {% endif %}
 
-  <hr>
+  <a href="{{ url_for('new_carcass') }}" class="btn btn-secondary">
+    <i class="fa-solid fa-skull-crossbones me-1"></i> Record Carcass
+  </a>
 
-  <p>
-    {% if current_user.is_authenticated and current_user.role == 'admin' %}
-      <a href="{{ url_for('new_site') }}">➕ Add New Site</a> |
-    {% endif %}
-    <a href="{{ url_for('new_carcass') }}">🧍 Record Carcass</a> |
-    <a href="{{ url_for('export_samples') }}">📦 Export Samples CSV</a>
-  </p>
+  <a href="{{ url_for('export_samples') }}" class="btn btn-outline-dark">
+    <i class="fa-solid fa-file-csv me-1"></i> Export Samples CSV
+  </a>
+
+</div>
 
 {% endblock %}
