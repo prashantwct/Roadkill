@@ -1,23 +1,69 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Sample {{ s.label }}</h2>
 
-  <p><b>UUID:</b> {{ s.uuid }}</p>
-  <p><b>Type:</b> {{ s.sample_type }}</p>
-  <p><b>Collected by:</b> {{ s.collected_by }} at {{ s.collected_at.strftime('%Y-%m-%d %H:%M') }}</p>
-  <p><b>Storage:</b> {{ s.storage }}</p>
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
 
-  <!-- NEW: Carcass Code -->
-  <p>
-    <b>Carcass:</b>
-    <a href="{{ url_for('view_carcass', carcass_id=s.carcass.id) }}">
-      #{{ s.carcass.id }} (Code: {{ s.carcass.code }})
-    </a>
-  </p>
+    <div class="card shadow-sm p-4">
 
-  <p>
-    <img src="{{ url_for('static', filename='labels/' + s.label + '.png') }}"
-         width="200" alt="QR label">
-  </p>
+      <h3 class="mb-3">
+        <i class="fa-solid fa-vial me-2"></i>
+        Sample {{ s.label }}
+      </h3>
+
+      <table class="table table-borderless mb-4">
+        <tbody>
+          <tr>
+            <th class="w-25">UUID:</th>
+            <td>{{ s.uuid }}</td>
+          </tr>
+
+          <tr>
+            <th>Type:</th>
+            <td>{{ s.sample_type }}</td>
+          </tr>
+
+          <tr>
+            <th>Collected By:</th>
+            <td>
+              {{ s.collected_by }}
+              <br>
+              <small class="text-muted">
+                {{ s.collected_at.strftime('%Y-%m-%d %H:%M') }}
+              </small>
+            </td>
+          </tr>
+
+          <tr>
+            <th>Storage:</th>
+            <td>{{ s.storage }}</td>
+          </tr>
+
+          <tr>
+            <th>Carcass:</th>
+            <td>
+              <a href="{{ url_for('view_carcass', carcass_id=s.carcass.id) }}"
+                 class="text-decoration-none">
+                #{{ s.carcass.id }} — Code: <strong>{{ s.carcass.code }}</strong>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h5 class="mt-4">QR Label</h5>
+      <div class="text-center">
+        <img
+          src="{{ url_for('static', filename='labels/' + s.label + '.png') }}"
+          width="200"
+          class="img-fluid border p-2 rounded"
+          alt="QR label"
+        >
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
-
