@@ -1,31 +1,74 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Site: {{ site.name }}</h2>
-<p><strong>Code:</strong> {{ site.code }}</p>
-<p><strong>Description:</strong> {{ site.description or 'No description provided.' }}</p>
+<div class="row justify-content-center">
+  <div class="col-lg-8">
 
-<h3>Carcasses Recorded at This Site</h3>
-{% if carcasses %}
-  <ul>
-    {% for c in carcasses %}
-      <li>
-        <!-- NEW: Carcass Code included -->
-        <strong>{{ c.code }}</strong> —
-        <a href="{{ url_for('view_carcass', carcass_id=c.id) }}">
-          {{ c.species or 'Unknown species' }}
+    <div class="card shadow-sm p-4">
+
+      <h3 class="mb-1">
+        <i class="fa-solid fa-map-location-dot me-2"></i>
+        {{ site.code }} — {{ site.name }}
+      </h3>
+
+      <p class="text-muted">
+        {{ site.description or "No description provided." }}
+      </p>
+
+      <hr>
+
+      <h4 class="mb-3">
+        <i class="fa-solid fa-paw me-2"></i>
+        Carcasses Recorded at This Site
+      </h4>
+
+      {% if carcasses %}
+        <ul class="list-group mb-4">
+          {% for c in carcasses %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+
+              <div>
+                <strong>{{ c.code }}</strong> —
+                <a href="{{ url_for('view_carcass', carcass_id=c.id) }}">
+                  {{ c.species or "Unknown species" }}
+                </a>
+
+                <br>
+                <small class="text-muted">
+                  Found at {{ c.datetime_found.strftime('%Y-%m-%d %H:%M:%S') }} IST
+                </small>
+              </div>
+
+              <a href="{{ url_for('view_carcass', carcass_id=c.id) }}"
+                 class="btn btn-sm btn-outline-primary">
+                View
+              </a>
+
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No carcasses recorded yet for this site.</p>
+      {% endif %}
+
+      <div class="d-flex justify-content-between">
+
+        <a href="{{ url_for('new_carcass', site_id=site.id) }}"
+           class="btn btn-primary">
+          <i class="fa-solid fa-plus me-1"></i>
+          Record New Carcass
         </a>
-        — Found at {{ c.datetime_found.strftime('%Y-%m-%d %H:%M:%S') }} IST
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No carcasses recorded yet for this site.</p>
-{% endif %}
 
-<p>
-  <a href="{{ url_for('new_carcass', site_id=site.id) }}">➕ Record New Carcass</a> |
-  <a href="{{ url_for('index') }}">← Back to All Sites</a>
-</p>
+        <a class="btn btn-secondary"
+           href="{{ url_for('index') }}">
+          ← Back to All Sites
+        </a>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
 
 {% endblock %}
