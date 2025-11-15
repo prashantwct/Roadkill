@@ -1,86 +1,170 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Admin Dashboard</h2>
+<div class="container my-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Admin Dashboard</h2>
+    <div class="text-end">
+      <a class="btn btn-sm btn-outline-primary me-2" href="{{ url_for('manage_users') }}">👥 Manage Users</a>
+      <a class="btn btn-sm btn-outline-success me-2" href="{{ url_for('new_site') }}">➕ Add Site</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('export_samples') }}">📦 Export CSV</a>
+    </div>
+  </div>
 
-<div class="stats">
-  <ul>
-    <li><strong>Total Users:</strong> {{ total_users }}</li>
-    <li><strong>Pending Approvals:</strong> {{ pending_users }}</li>
-    <li><strong>Total Sites:</strong> {{ total_sites }}</li>
-    <li><strong>Total Carcasses:</strong> {{ total_carcasses }}</li>
-    <li><strong>Total Samples:</strong> {{ total_samples }}</li>
-  </ul>
+  <!-- Stats cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-muted">Total Users</h6>
+          <h3 class="card-title">{{ total_users }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-muted">Pending Approvals</h6>
+          <h3 class="card-title">{{ pending_users }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-muted">Sites</h6>
+          <h3 class="card-title">{{ total_sites }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-muted">Carcasses</h6>
+          <h3 class="card-title">{{ total_carcasses }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-muted">Samples</h6>
+          <h3 class="card-title">{{ total_samples }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="mb-4">
+    <h5 class="mb-2">Quick Actions</h5>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('manage_users') }}">👥 Manage Users</a>
+      <a class="btn btn-outline-success btn-sm" href="{{ url_for('new_site') }}">➕ Add New Site</a>
+      <a class="btn btn-outline-info btn-sm" href="{{ url_for('new_carcass') }}">🧍 Record Carcass</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_samples') }}">📦 Export Samples (CSV)</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Recent carcasses -->
+    <div class="col-12 col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Recent Carcasses</h6>
+          <small class="text-muted">Latest first</small>
+        </div>
+        <div class="card-body p-0">
+          {% if recent_carcasses %}
+            <div class="list-group list-group-flush">
+              {% for c in recent_carcasses %}
+                <div class="list-group-item d-flex justify-content-between align-items-start">
+                  <div class="ms-2 me-auto">
+                    <div class="fw-bold">{{ c.code or '—' }} — {{ c.species or 'Unknown' }}</div>
+                    <div class="small text-muted">
+                      Site: {{ c.site.code if c.site else '—' }}
+                      &nbsp;•&nbsp;
+                      {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') if c.datetime_found else '—' }}
+                    </div>
+                    {% if c.notes %}
+                      <div class="mt-1 small text-truncate" style="max-width: 30rem;">{{ c.notes }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="text-end">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('view_carcass', carcass_id=c.id) }}" aria-label="View carcass {{ c.code }}">View</a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="p-3">
+              <p class="mb-0 text-muted">No carcasses found.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent samples -->
+    <div class="col-12 col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Recent Samples</h6>
+          <small class="text-muted">Latest first</small>
+        </div>
+
+        <div class="card-body p-0">
+          {% if recent_samples %}
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Label</th>
+                    <th>Carcass</th>
+                    <th>Type</th>
+                    <th>Collected</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for s in recent_samples %}
+                    <tr>
+                      <td class="align-middle text-truncate" style="max-width:12rem;">{{ s.label }}</td>
+                      <td class="align-middle">{{ s.carcass.code if s.carcass else '—' }}</td>
+                      <td class="align-middle">{{ s.sample_type or '—' }}</td>
+                      <td class="align-middle small text-muted">{{ s.collected_at.strftime('%Y-%m-%d %H:%M') if s.collected_at else '—' }}</td>
+                      <td class="align-middle text-end">
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('view_sample', sample_id=s.id) }}" aria-label="View sample {{ s.label }}">View</a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="p-3">
+              <p class="mb-0 text-muted">No samples found.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<hr>
-
-<h3>Quick Actions</h3>
-<div class="admin-actions">
-  <p><a href="{{ url_for('manage_users') }}">👥 Manage Users</a></p>
-  <p><a href="{{ url_for('new_site') }}">➕ Add New Site</a></p>
-  <p><a href="{{ url_for('new_carcass') }}">🧍 Record Carcass</a></p>
-  <p><a href="{{ url_for('export_samples') }}">📦 Export Samples (CSV)</a></p>
-</div>
-
-<hr>
-
-<!-- RECENT CARCASSES SECTION -->
-<h3>Recent Carcasses</h3>
-{% if recent_carcasses %}
-  <ul>
-    {% for c in recent_carcasses %}
-      <li>
-        <strong>{{ c.code or '—' }}</strong> —
-        {{ c.species or 'Unknown' }}
-        at {{ c.site.code if c.site else '—' }}
-        on {{ c.datetime_found.strftime('%Y-%m-%d %H:%M') if c.datetime_found else '—' }}
-        <a href="{{ url_for('view_carcass', carcass_id=c.id) }}">View</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No carcasses found.</p>
-{% endif %}
-
-<hr>
-
-<!-- RECENT SAMPLES SECTION -->
-<h3>Recent Samples</h3>
-{% if recent_samples %}
-  <ul>
-    {% for s in recent_samples %}
-      <li>
-        {{ s.label }}
-        (Carcass Code <strong>{{ s.carcass.code if s.carcass else '—' }}</strong>)
-        <a href="{{ url_for('view_sample', sample_id=s.id) }}">View</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No samples found.</p>
-{% endif %}
-
+<!-- Small custom styles local to this page -->
 <style>
-.stats ul {
-  list-style: none;
-  padding: 0;
-}
-.stats li {
-  margin: 4px 0;
-  font-size: 16px;
-}
-.admin-actions a {
-  display: inline-block;
-  margin-right: 10px;
-  padding: 6px 10px;
-  background: #eef;
-  border-radius: 6px;
-  text-decoration: none;
-}
-.admin-actions a:hover {
-  background: #cce;
-}
+  /* Make cards slightly taller on small screens to avoid tight stacking */
+  @media (max-width: 576px) {
+    .card.h-100 { min-height: 140px; }
+  }
+  /* Truncate notes in list view */
+  .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 
 {% endblock %}
