@@ -158,8 +158,8 @@ def generate_qr_for_label(label):
 
 def create_app():
     app = Flask(__name__)
-from datetime import datetime
-app.jinja_env.globals['datetime'] = datetime
+    from datetime import datetime
+    app.jinja_env.globals['datetime'] = datetime
 
     # Config
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'replace-this')
