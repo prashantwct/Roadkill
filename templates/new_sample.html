@@ -12,7 +12,7 @@
       </h3>
 
       <p class="text-muted">
-        Species: <strong>{{ c.species }}</strong> • 
+        Species: <strong>{{ c.species }}</strong> •
         Site: <strong>{{ c.site.code }}</strong>
       </p>
 
@@ -56,11 +56,20 @@
                     placeholder="Optional"></textarea>
         </div>
 
-        <!-- SUBMIT BUTTON -->
-        <button class="btn btn-success w-100">
-          <i class="fa-solid fa-check me-1"></i>
-          Create Sample
-        </button>
+        <!-- TWO ACTION BUTTONS -->
+        <div class="d-grid gap-2">
+          <!-- ADD ANOTHER SAMPLE -->
+          <button type="submit" name="action" value="add_more" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-1"></i>
+            Add Another Sample
+          </button>
+
+          <!-- FINISH -->
+          <button type="submit" name="action" value="finish" class="btn btn-success">
+            <i class="fa-solid fa-check me-1"></i>
+            Finish
+          </button>
+        </div>
 
       </form>
 
