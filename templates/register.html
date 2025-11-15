@@ -1,10 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Register</h2>
-  <form method="post">
-    <label>Username <input name="username" required></label>
-    <label>Password <input type="password" name="password" required></label>
-    <label>Full Name <input name="full_name"></label>
-    <button type="submit">Register</button>
-  </form>
+
+<div class="row justify-content-center mt-4">
+  <div class="col-lg-5 col-md-7">
+
+    <div class="card shadow-sm p-4">
+
+      <h3 class="mb-3 text-center">
+        <i class="fa-solid fa-user-plus me-2"></i>
+        Create an Account
+      </h3>
+
+      <form method="POST">
+
+        <!-- USERNAME -->
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <input name="username"
+                 class="form-control"
+                 placeholder="Choose a username"
+                 required>
+        </div>
+
+        <!-- PASSWORD -->
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password"
+                 name="password"
+                 class="form-control"
+                 placeholder="Create a password"
+                 required>
+        </div>
+
+        <!-- FULL NAME -->
+        <div class="mb-3">
+          <label class="form-label">Full Name</label>
+          <input name="full_name"
+                 class="form-control"
+                 placeholder="Your full name (optional)">
+        </div>
+
+        <!-- SUBMIT -->
+        <button class="btn btn-primary w-100">
+          <i class="fa-solid fa-check me-1"></i>
+          Register
+        </button>
+
+      </form>
+
+      <p class="text-center mt-3 mb-0 small">
+        Already have an account?
+        <a href="{{ url_for('login') }}">Login</a>
+      </p>
+
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
