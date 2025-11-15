@@ -1,10 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Login</h2>
-  <form method="post">
-    <label>Username <input name="username" required></label>
-    <label>Password <input type="password" name="password" required></label>
-    <button type="submit">Login</button>
-  </form>
-  <p><a href="{{ url_for('register') }}">Register</a></p>
+
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5">
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+
+        <h3 class="mb-3 text-center">
+          <i class="fa-solid fa-right-to-bracket me-2"></i>
+          Login
+        </h3>
+
+        <form method="POST">
+
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input name="username" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i>
+            Login
+          </button>
+        </form>
+
+        <div class="text-center mt-3">
+          <a href="{{ url_for('register') }}">
+            <i class="fa-solid fa-user-plus me-1"></i>
+            Register
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
