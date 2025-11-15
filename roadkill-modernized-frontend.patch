@@ -1,0 +1,442 @@
+# Patch: Modernized Frontend for Roadkill (single patch)
+
+This document contains a single git-style patch that **adds/updates** the modernized frontend files and a clear step‑by‑step guide to apply the patch, test locally, run the helper script, and create a PR.
+
+---
+
+## Patch (apply with `git apply` or inspect then copy files)
+
+Save the block below to a file named `roadkill-modernized-frontend.patch` and apply with `git apply roadkill-modernized-frontend.patch`.
+
+```
+*** Begin Patch
+*** Add File: templates/base.html
++<!doctype html>
++<html lang="en">
++<head>
++  <meta charset="utf-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1">
++  <title>{{ title if title else "Roadkill Tracker" }}</title>
++
++  <!-- Bootstrap CSS (CDN) -->
++  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="" crossorigin="anonymous">
++
++  <!-- Optional icons -->
++  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
++
++  <!-- Global overrides -->
++  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
++</head>
++<body class="bg-light">
++
++<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
++  <div class="container-lg">
++    <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">Roadkill Tracker</a>
++    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
++      <span class="navbar-toggler-icon"></span>
++    </button>
++
++    <div class="collapse navbar-collapse" id="navMenu">
++      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
++        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
++        {% if current_user.is_authenticated %}
++          {% if current_user.role == 'admin' %}
++            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin</a></li>
++          {% endif %}
++          <li class="nav-item"><a class="nav-link" href="{{ url_for('change_password') }}">Account</a></li>
++          <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
++        {% else %}
++          <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
++          <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Register</a></li>
++        {% endif %}
++      </ul>
++    </div>
++  </div>
++</nav>
++
++<div class="container-lg py-4">
++  {% with messages = get_flashed_messages() %}
++    {% if messages %}
++      <div class="toast-container position-fixed top-0 end-0 p-3">
++        {% for msg in messages %}
++          <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
++            <div class="toast-header">
++              <strong class="me-auto">Notice</strong>
++              <small class="text-muted">now</small>
++              <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
++            </div>
++            <div class="toast-body">{{ msg }}</div>
++          </div>
++        {% endfor %}
++      </div>
++    {% endif %}
++  {% endwith %}
++
++  {% block content %}{% endblock %}
++</div>
++
++<footer class="bg-white border-top py-3 mt-5">
++  <div class="container-lg text-center small text-muted">
++    © {{ datetime.utcnow().year }} Roadkill Tracker — Built with ❤️
++  </div>
++</footer>
++
++<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
++</body>
++</html>
+*** End Patch
+*** Begin Patch
+*** Add File: static/app.css
++:root{
++  --brand:#0d6efd;
++}
++body{font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
++.navbar-brand{letter-spacing:0.3px}
++.card{border-radius:12px}
++.btn{border-radius:8px}
++.form-control, .form-select{border-radius:8px}
++.table thead th{background:#f8f9fa}
++.toast{box-shadow:0 4px 10px rgba(0,0,0,0.06)}
++.container-lg{max-width:1100px}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/index.html
++{% extends "base.html" %}
++{% block content %}
++<div class="row g-3">
++  <div class="col-12">
++    <div class="card p-3">
++      <div class="d-flex justify-content-between align-items-center">
++        <div>
++          <h3 class="mb-0">Sites</h3>
++          <small class="text-muted">Manage and view monitoring sites</small>
++        </div>
++        <div>
++          {% if current_user.is_authenticated and current_user.role == 'admin' %}
++            <a class="btn btn-outline-primary me-2" href="{{ url_for('new_site') }}"><i class="fa fa-plus"></i> New Site</a>
++          {% endif %}
++          <a class="btn btn-primary" href="{{ url_for('new_carcass') }}">Report Carcass</a>
++        </div>
++      </div>
++
++      <hr>
++
++      <div class="table-responsive">
++        <table class="table align-middle">
++          <thead>
++            <tr>
++              <th>Name</th>
++              <th>Code</th>
++              <th>Description</th>
++              <th></th>
++            </tr>
++          </thead>
++          <tbody>
++            {% for s in sites %}
++              <tr>
++                <td>{{ s.name }}</td>
++                <td>{{ s.code }}</td>
++                <td>{{ s.description or '' }}</td>
++                <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('view_site', site_id=s.id) }}">Open</a></td>
++              </tr>
++            {% else %}
++              <tr><td colspan="4" class="text-center text-muted">No sites yet.</td></tr>
++            {% endfor %}
++          </tbody>
++        </table>
++      </div>
++    </div>
++  </div>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/login.html
++{% extends "base.html" %}
++{% block content %}
++<div class="row justify-content-center">
++  <div class="col-md-6 col-lg-5">
++    <div class="card p-4 shadow-sm">
++      <h4 class="mb-3">Sign in</h4>
++      <form method="post">
++        <div class="mb-3">
++          <label class="form-label">Username</label>
++          <input name="username" class="form-control" required>
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Password</label>
++          <input name="password" type="password" class="form-control" required>
++        </div>
++        <div class="d-flex justify-content-between align-items-center">
++          <button class="btn btn-primary">Login</button>
++          <a href="{{ url_for('register') }}" class="small">Register</a>
++        </div>
++      </form>
++    </div>
++  </div>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/register.html
++{% extends "base.html" %}
++{% block content %}
++<div class="row justify-content-center">
++  <div class="col-md-6 col-lg-5">
++    <div class="card p-4 shadow-sm">
++      <h4 class="mb-3">Register</h4>
++      <form method="post">
++        <div class="mb-3">
++          <label class="form-label">Full name (optional)</label>
++          <input name="full_name" class="form-control">
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Username</label>
++          <input name="username" class="form-control" required>
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Password</label>
++          <input name="password" type="password" class="form-control" required>
++        </div>
++        <button class="btn btn-primary">Create account</button>
++      </form>
++    </div>
++  </div>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/new_site.html
++{% extends "base.html" %}
++{% block content %}
++<div class="card p-3">
++  <h4>New Site</h4>
++  <form method="post">
++    <div class="row">
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Name</label>
++        <input name="name" class="form-control" required>
++      </div>
++      <div class="col-md-3 mb-3">
++        <label class="form-label">Code</label>
++        <input name="code" class="form-control" required>
++      </div>
++      <div class="col-12 mb-3">
++        <label class="form-label">Description</label>
++        <textarea name="description" class="form-control"></textarea>
++      </div>
++    </div>
++    <button class="btn btn-primary">Save</button>
++  </form>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/new_carcass.html
++{% extends "base.html" %}
++{% block content %}
++<div class="card p-3">
++  <h4>Report Carcass</h4>
++  <form method="post">
++    <input type="hidden" name="site_id" value="{{ site_id or '' }}">
++    <div class="mb-3">
++      <label class="form-label">Species</label>
++      <input name="species" class="form-control">
++    </div>
++    <div class="mb-3">
++      <label class="form-label">Date/Time (ISO)</label>
++      <input name="datetime" class="form-control" placeholder="YYYY-MM-DDTHH:MM:SS">
++    </div>
++    <div class="row">
++      <div class="col-md-6 mb-3"><label class="form-label">Latitude</label><input name="latitude" class="form-control"></div>
++      <div class="col-md-6 mb-3"><label class="form-label">Longitude</label><input name="longitude" class="form-control"></div>
++    </div>
++    <div class="mb-3"><label class="form-label">Notes</label><textarea name="notes" class="form-control"></textarea></div>
++    <button class="btn btn-primary">Save</button>
++  </form>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/new_sample.html
++{% extends "base.html" %}
++{% block content %}
++<div class="card p-3">
++  <h4>New Sample for {{ c.site.name }} ({{ c.site.code }})</h4>
++  <form method="post">
++    <div class="row">
++      <div class="col-md-6 mb-3"><label class="form-label">Sample type</label><input name="sample_type" class="form-control"></div>
++      <div class="col-md-6 mb-3"><label class="form-label">Collected at (ISO)</label><input name="collected_at" class="form-control" placeholder="YYYY-MM-DDTHH:MM:SS"></div>
++    </div>
++    <div class="mb-3"><label class="form-label">Storage</label><input name="storage" class="form-control"></div>
++    <div class="mb-3"><label class="form-label">Notes</label><textarea name="notes" class="form-control"></textarea></div>
++    <button class="btn btn-primary">Create sample</button>
++  </form>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: templates/sample.html
++{% extends "base.html" %}
++{% block content %}
++<div class="card p-3">
++  <div class="d-flex justify-content-between align-items-start">
++    <div>
++      <h4>{{ s.label }}</h4>
++      <div class="text-muted">UUID: {{ s.uuid }}</div>
++      <p class="mt-2">Type: {{ s.sample_type }} — Collected by: {{ s.collected_by }} at {{ s.collected_at }}</p>
++    </div>
++    <div>
++      <img src="{{ url_for('sample_qr', sample_id=s.id) }}" alt="QR" style="max-width:160px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.08)">
++    </div>
++  </div>
++</div>
++{% endblock %}
+*** End Patch
+*** Begin Patch
+*** Add File: tools/bulk_inject_extends.py
++"""Simple script to inject `{% extends "base.html" %}` into Jinja templates
++that do not already extend another template. Creates a .bak backup for each file.
++
++Usage: python tools/bulk_inject_extends.py templates/
++"""
++import sys
++from pathlib import Path
++
++TEMPLATE_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('templates')
++
++for p in TEMPLATE_DIR.rglob('*.html'):
++    text = p.read_text(encoding='utf8')
++    if '{% extends' in text:
++        continue
++    # don't touch files that look like partials
++    if '{% block' not in text:
++        continue
++    print('Patching', p)
++    bak = p.with_suffix(p.suffix + '.bak')
++    bak.write_text(text, encoding='utf8')
++    new = '{% extends "base.html" %}\n' + text
++    p.write_text(new, encoding='utf8')
++
++print('Done')
+*** End Patch
+```
+
+---
+
+## Step-by-step guide — apply patch, test, and create PR
+
+Follow these steps on your development machine (assumes a git repo).
+
+### 1) Save the patch file
+
+1. Copy the `Patch` block above into a file in your repo root called:
+
+   ```bash
+   roadkill-modernized-frontend.patch
+   ```
+
+> If you prefer, instead of applying the patch you can create the files manually by copying the contents from the patch into the paths shown (e.g. `templates/base.html`, `static/app.css`, etc.).
+
+### 2) Create a new branch
+
+```bash
+git checkout -b feat/frontend/modernize-layout
+```
+
+### 3) Apply the patch
+
+```bash
+git apply roadkill-modernized-frontend.patch
+```
+
+If `git apply` reports rejects or errors, open `roadkill-modernized-frontend.patch` and inspect which files conflict or already exist. If the files already exist in your tree and you want to replace them, use `git apply --whitespace=fix --verbose roadkill-modernized-frontend.patch` or manually copy the file contents.
+
+### 4) Add & commit changes
+
+```bash
+git add templates static tools
+git commit -m "feat: modernize frontend — new base layout, styles, templates, injector script"
+```
+
+### 5) Inspect the UI locally
+
+1. Ensure your Flask (or WSGI) app can serve `static/` files from `static/` and templates from `templates/` (default Flask behavior).
+2. Start your development server, e.g.:
+
+```bash
+export FLASK_ENV=development
+flask run
+# or however you start your app, e.g. python -m flask run
+```
+
+3. Visit [http://127.0.0.1:5000/](http://127.0.0.1:5000/) and check the home page, login, register pages.
+
+### 6) Run the helper script to patch existing templates (optional)
+
+If you have old templates that do not extend a base file but contain `{% block %}` placeholders, the included script will add `{% extends "base.html" %}` to them and save a `.bak` backup.
+
+```bash
+python tools/bulk_inject_extends.py templates/
+```
+
+**Important notes:**
+
+* The script writes `.bak` files alongside patched templates. Keep the backups until you confirm everything works.
+* Review each `.bak` and the patched template to ensure the extend is appropriate. The script is conservative: it only patches files that contain `{% block` and do not already have `{% extends`.
+
+### 7) Test flows that render modified templates
+
+* Try the login and registration flows, create a site (if admin), report a carcass, and view a sample page that renders a QR image. Verify forms submit correctly and no unexpected template errors appear.
+* If you use CSRF tokens or other context variables, ensure they are still present in the templates or injected via your view functions.
+
+### 8) Lint & formatting (optional but recommended)
+
+Run any project linters/formatters you use (e.g., `pre-commit`, `black`, `ruff`) and run tests.
+
+### 9) Push branch and open PR
+
+```bash
+git push -u origin feat/frontend/modernize-layout
+# Open a PR in your repo hosting service (GitHub/GitLab/Bitbucket)
+```
+
+### 10) Rollback if needed
+
+If something goes wrong and you want to undo the applied patch before committing:
+
+```bash
+git checkout -- templates static tools
+```
+
+If you already committed and want to revert the commit:
+
+```bash
+git reset --hard HEAD~1   # careful: this discards the commit locally
+```
+
+If you used the helper script and want to restore the backups:
+
+```bash
+# restore a specific file
+mv templates/page.html.bak templates/page.html
+```
+
+---
+
+## Extra tips & checklist
+
+* [ ] Verify `url_for('static', filename='app.css')` returns a reachable URL; if you have static hosting differences adjust accordingly.
+* [ ] If you use CSP or strict external resource policies, allow the Bootstrap and Font Awesome CDNs or bundle them locally.
+* [ ] If your project uses a different base template name, change the `extends` string accordingly.
+* [ ] If you want a single ZIP instead of a patch, tell me and I will produce it.
+
+---
+
+If you want, I can now:
+
+* produce a ZIP file ready to drop into the project,
+* create a smaller patch that only updates specific files (list the files), or
+* open a ready-to-review PR if you give me the repo URL and permission to open PRs (I can produce the exact commands you'll need).
+
+Tell me which one you want next.
