@@ -3,61 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Roadkill Sample App</title>
-  <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+  <title>{{ title if title else "Roadkill Tracker" }}</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
-<body>
+<body class="bg-light">
 
-<nav>
-  <a href="{{ url_for('index') }}">Home</a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container-lg">
+    <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">Roadkill Tracker</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-  {% if current_user.is_authenticated %}
-    {% if current_user.role == 'admin' %}
-      <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-      <a href="{{ url_for('manage_users') }}">Manage Users</a>
-    {% endif %}
-    <a href="{{ url_for('change_password') }}">Change Password</a>
-    <a href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a>
-  {% else %}
-    <a href="{{ url_for('login') }}">Login</a>
-  {% endif %}
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+        {% if current_user.is_authenticated %}
+          {% if current_user.role == 'admin' %}
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a></li>
+          {% endif %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('change_password') }}">Account</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a></li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
 </nav>
 
-<main>
-  <h1>Roadkill Sample App</h1>
+<div class="container-lg py-4">
   {% with messages = get_flashed_messages() %}
     {% if messages %}
-      <ul>{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>
+      <div class="toast-container position-fixed top-0 end-0 p-3">
+        {% for msg in messages %}
+          <div class="toast show" role="alert">
+            <div class="toast-header">
+              <strong class="me-auto">Notice</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">{{ msg }}</div>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
   {% endwith %}
+
   {% block content %}{% endblock %}
-</main>
+</div>
 
-<footer><small>Prototype — secure before production.</small></footer>
+<footer class="bg-white border-top py-3 mt-5">
+  <div class="container-lg text-center small text-muted">
+    © {{ datetime.utcnow().year }} Roadkill Tracker
+  </div>
+</footer>
 
-<!-- Auto-fill datetime & GPS -->
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const dtField = document.querySelector('input[name="datetime"], input[name="collected_at"]');
-  if (dtField && !dtField.value) {
-    const now = new Date().toISOString().slice(0, 19);
-    dtField.value = now;
-  }
-
-  const latField = document.querySelector('input[name="latitude"]');
-  const lonField = document.querySelector('input[name="longitude"]');
-  if (latField && lonField && navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        latField.value = pos.coords.latitude.toFixed(6);
-        lonField.value = pos.coords.longitude.toFixed(6);
-      },
-      err => console.warn("GPS unavailable:", err),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-  }
-});
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
