@@ -1,16 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>New Sample for Carcass {{ c.id }} ({{ c.species }})</h2>
-  <form method="post">
-    <label>Sample type (Brain/Saliva/Swab/Blood)
-      <input name="sample_type" required>
-    </label>
-    <input type="hidden" name="collected_at">
-    <label>Collected by
-      <input name="collected_by" value="{{ current_user.username }}" readonly>
-    </label>
-    <label>Storage <input name="storage" placeholder="e.g. -80°C freezer"></label>
-    <label>Notes <input name="notes"></label>
-    <button type="submit">Create Sample</button>
-  </form>
+
+<div class="row justify-content-center mt-3">
+  <div class="col-lg-7">
+
+    <div class="card shadow-sm p-4">
+
+      <h3 class="mb-3">
+        <i class="fa-solid fa-vial me-2"></i>
+        New Sample for Carcass {{ c.code }}
+      </h3>
+
+      <p class="text-muted">
+        Species: <strong>{{ c.species }}</strong> • 
+        Site: <strong>{{ c.site.code }}</strong>
+      </p>
+
+      <form method="POST">
+
+        <!-- SAMPLE TYPE -->
+        <div class="mb-3">
+          <label class="form-label">Sample Type</label>
+          <input name="sample_type"
+                 class="form-control"
+                 placeholder="Brain, Saliva, Swab, Blood"
+                 required>
+        </div>
+
+        <!-- HIDDEN TIMESTAMP -->
+        <input type="hidden" name="collected_at">
+
+        <!-- COLLECTED BY -->
+        <div class="mb-3">
+          <label class="form-label">Collected By</label>
+          <input name="collected_by"
+                 class="form-control"
+                 value="{{ current_user.username }}"
+                 readonly>
+        </div>
+
+        <!-- STORAGE -->
+        <div class="mb-3">
+          <label class="form-label">Storage</label>
+          <input name="storage"
+                 class="form-control"
+                 placeholder="e.g. -80°C freezer">
+        </div>
+
+        <!-- NOTES -->
+        <div class="mb-3">
+          <label class="form-label">Notes</label>
+          <textarea name="notes"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Optional"></textarea>
+        </div>
+
+        <!-- SUBMIT BUTTON -->
+        <button class="btn btn-success w-100">
+          <i class="fa-solid fa-check me-1"></i>
+          Create Sample
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
