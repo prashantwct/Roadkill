@@ -428,50 +428,52 @@ def register_routes(app):
         return render_template('carcass.html', c=c)
 
     # ---------- SAMPLE MANAGEMENT ----------
+    # ---------- SAMPLE MANAGEMENT ----------
     @app.route('/carcass/<int:carcass_id>/sample/new', methods=['GET', 'POST'])
-@login_required
-def new_sample(carcass_id):
-    c = Carcass.query.get_or_404(carcass_id)
+    @login_required
+    def new_sample(carcass_id):
+        c = Carcass.query.get_or_404(carcass_id)
 
-    if request.method == 'POST':
-        sample_type = request.form.get('sample_type')
-        collected_at_str = request.form.get('collected_at')
-        collected_at = (
-            datetime.fromisoformat(collected_at_str) + timedelta(hours=5, minutes=30)
-            if collected_at_str else ist_now()
-        )
+        if request.method == 'POST':
+            sample_type = request.form.get('sample_type')
+            collected_at_str = request.form.get('collected_at')
+            collected_at = (
+                datetime.fromisoformat(collected_at_str) + timedelta(hours=5, minutes=30)
+                if collected_at_str else ist_now()
+            )
 
-        seq = next_sequence_for_site_date(c.site.code, collected_at.strftime('%Y%m%d'))
-        label = make_label(c.site.code, collected_at, seq, sample_type)
-        suid = str(uuid.uuid4())
-        qr_path = generate_qr_for_label(label)
+            seq = next_sequence_for_site_date(c.site.code, collected_at.strftime('%Y%m%d'))
+            label = make_label(c.site.code, collected_at, seq, sample_type)
+            suid = str(uuid.uuid4())
+            qr_path = generate_qr_for_label(label)
 
-        s = Sample(
-            carcass_id=carcass_id,
-            uuid=suid,
-            label=label,
-            sample_type=sample_type,
-            collected_by=current_user.username,
-            collected_at=collected_at,
-            storage=request.form.get('storage'),
-            notes=request.form.get('notes'),
-            qr_path=qr_path
-        )
-        db.session.add(s)
-        db.session.commit()
-        flash(f'Sample {label} created successfully')
+            s = Sample(
+                carcass_id=carcass_id,
+                uuid=suid,
+                label=label,
+                sample_type=sample_type,
+                collected_by=current_user.username,
+                collected_at=collected_at,
+                storage=request.form.get('storage'),
+                notes=request.form.get('notes'),
+                qr_path=qr_path
+            )
+            db.session.add(s)
+            db.session.commit()
+            flash(f'Sample {label} created successfully')
 
-        # Check which button was pressed
-        action = request.form.get("action")
+            # Check which button was pressed
+            action = request.form.get("action")
 
-        if action == "add_another":
-            # Stay on same new sample page
-            return redirect(url_for('new_sample', carcass_id=carcass_id))
+            if action == "add_another":
+                # Stay on same new sample page
+                return redirect(url_for('new_sample', carcass_id=carcass_id))
 
-        # Default → finish: go to carcass view
-        return redirect(url_for('view_carcass', carcass_id=carcass_id))
+            # Default → finish: go to carcass view
+            return redirect(url_for('view_carcass', carcass_id=carcass_id))
 
-    return render_template('new_sample.html', c=c)
+        return render_template('new_sample.html', c=c)
+
 
 
     # ---------- EXPORT ----------
