@@ -1,5 +1,5 @@
+# app.py
 # Production-ready Flask app with factory pattern and SQLAlchemy
-
 import os
 import uuid
 import qrcode
@@ -60,7 +60,7 @@ class Site(db.Model):
 
 class Carcass(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(4), unique=True, nullable=False)
+    code = db.Column(db.String(8), unique=True, nullable=False)
 
     site_id = db.Column(db.Integer, db.ForeignKey('site.id'))
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -88,7 +88,10 @@ class Sample(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    try:
+        return User.query.get(int(user_id))
+    except Exception:
+        return None
 
 # ========================
 # DB INIT
@@ -119,7 +122,7 @@ def setup_database(app):
 def generate_unique_carcass_code():
     chars = string.ascii_uppercase + string.digits
     while True:
-        code = ''.join(random.choices(chars, k=4))
+        code = ''.join(random.choices(chars, k=6))
         if not Carcass.query.filter_by(code=code).first():
             return code
 
@@ -149,11 +152,12 @@ def generate_qr_for_label(label):
 def create_app():
     app = Flask(__name__)
 
+    # make datetime available in jinja templates if needed
     from datetime import datetime as dt
     app.jinja_env.globals['datetime'] = dt
 
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'replace-this')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(BASE_DIR, 'roadkill.db'))
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     label_dir = os.path.join(BASE_DIR, 'static', 'labels')
@@ -174,7 +178,7 @@ def create_app():
 # ========================
 
 def is_admin():
-    return current_user.is_authenticated and current_user.role == "admin"
+    return current_user.is_authenticated and getattr(current_user, 'role', None) == "admin"
 
 def register_routes(app):
 
@@ -184,7 +188,7 @@ def register_routes(app):
         sites = Site.query.all()
         return render_template('index.html', sites=sites)
 
-    # ---------------- RESET ADMIN PW ----------------
+    # ---------------- RESET ADMIN PW (utility) ----------------
     @app.route('/reset_admin_pw')
     def reset_admin_pw():
         admin = User.query.filter_by(username="admin").first()
@@ -279,7 +283,7 @@ def register_routes(app):
 
         return render_template('change_password.html')
 
-    # ---------------- ADMIN ----------------
+    # ---------------- ADMIN DASHBOARD ----------------
     @app.route('/admin')
     @login_required
     def admin_dashboard():
@@ -320,6 +324,41 @@ def register_routes(app):
         db.session.commit()
 
         flash(f"User {u.username} approved.")
+        return redirect(url_for('manage_users'))
+
+    @app.route('/admin/user/<int:user_id>/delete')
+    @login_required
+    def delete_user(user_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('index'))
+
+        u = User.query.get_or_404(user_id)
+        if u.username == 'admin':
+            flash('Cannot delete the admin account.')
+            return redirect(url_for('manage_users'))
+        db.session.delete(u)
+        db.session.commit()
+        flash(f'User {u.username} deleted.')
+        return redirect(url_for('manage_users'))
+
+    # This route WAS missing in your previous deploys; templates call it.
+    @app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
+    @login_required
+    def reset_user_password(user_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('index'))
+
+        u = User.query.get_or_404(user_id)
+        new_pw = request.form.get('new_password')
+        if not new_pw:
+            flash('Password cannot be empty.')
+            return redirect(url_for('manage_users'))
+
+        u.pw_hash = bcrypt.generate_password_hash(new_pw).decode('utf-8')
+        db.session.commit()
+        flash(f'Password for {u.username} has been reset.')
         return redirect(url_for('manage_users'))
 
     # ---------------- SITES ----------------
@@ -364,7 +403,6 @@ def register_routes(app):
         if request.method == 'POST':
             site_id = int(request.form['site_id'])
             species = request.form.get('species')
-
             dt = request.form.get('datetime')
             dt_obj = datetime.fromisoformat(dt) + timedelta(hours=5, minutes=30) if dt else ist_now()
 
@@ -428,13 +466,21 @@ def register_routes(app):
 
             flash(f"Sample {label} created.")
 
-            # Which button was pressed?
+            # handle multiple submit buttons from the form
             if request.form.get("action") == "add_another":
                 return redirect(url_for('new_sample', carcass_id=carcass_id))
 
             return redirect(url_for('view_carcass', carcass_id=carcass_id))
 
         return render_template('new_sample.html', c=c)
+
+    # ---------------- VIEW SAMPLE ----------------
+    # <-- THIS ROUTE WAS MISSING IN YOUR DEPLOY; templates expect it.
+    @app.route('/sample/<int:sample_id>')
+    @login_required
+    def view_sample(sample_id):
+        sample = Sample.query.get_or_404(sample_id)
+        return render_template('sample.html', s=sample)
 
     # ---------------- EXPORT ----------------
     @app.route('/samples/export')
