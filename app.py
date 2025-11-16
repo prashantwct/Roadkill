@@ -196,18 +196,16 @@ def register_routes(app):
 
     @app.route('/')
     def index():
-        sites = Site.query.all()
-        return render_template('index.html', sites=sites)
-        @app.route('/reset_admin_pw')
+        ...
+    
+    @app.route('/reset_admin_pw')
     def reset_admin_pw():
         admin = User.query.filter_by(username="admin").first()
         if not admin:
             return "Admin user not found."
-
-        new_pw = "admin123"   # ← change if you want
+        new_pw = "admin123"
         admin.pw_hash = bcrypt.generate_password_hash(new_pw).decode("utf-8")
         db.session.commit()
-
         return "Admin password reset to: admin123"
 
     # ---------- AUTH ----------
