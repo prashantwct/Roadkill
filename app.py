@@ -60,7 +60,7 @@ class Site(db.Model):
 
 class Carcass(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(8), unique=True, nullable=False)
+    code = db.Column(db.String(4), unique=True, nullable=False)
 
     site_id = db.Column(db.Integer, db.ForeignKey('site.id'))
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -122,7 +122,7 @@ def setup_database(app):
 def generate_unique_carcass_code():
     chars = string.ascii_uppercase + string.digits
     while True:
-        code = ''.join(random.choices(chars, k=6))
+        code = ''.join(random.choices(chars, k=4))
         if not Carcass.query.filter_by(code=code).first():
             return code
 
