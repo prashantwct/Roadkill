@@ -65,6 +65,7 @@ class Carcass(db.Model):
     site_id = db.Column(db.Integer, db.ForeignKey('site.id'))
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     species = db.Column(db.String(140))
+    animal_type = db.Column(db.String(50))
     datetime_found = db.Column(db.DateTime, default=ist_now)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
@@ -620,14 +621,30 @@ def register_routes(app):
 
 
     # ---------------- MAP VIEW ----------------
+    # ---------------- MAP VIEW ----------------
     @app.route('/map')
     def map_view():
-        # Get all carcasses that have GPS coordinates
+        # 1. Get mappable carcasses for the map
         carcasses = Carcass.query.filter(
             Carcass.latitude.isnot(None), 
             Carcass.longitude.isnot(None)
         ).all()
-        return render_template('map.html', carcasses=carcasses)
+
+        # 2. Get FULL unique lists for the dropdowns
+        all_sites = sorted({s.code for s in Site.query.all()})
+        
+        # Use simple distinct queries
+        all_species = [r[0] for r in db.session.query(Carcass.species).distinct().filter(Carcass.species.isnot(None)).all()]
+        all_types = [r[0] for r in db.session.query(Carcass.animal_type).distinct().filter(Carcass.animal_type.isnot(None)).all()]
+        
+        all_species.sort()
+        all_types.sort()
+
+        return render_template('map.html', 
+                               carcasses=carcasses, 
+                               all_sites=all_sites, 
+                               all_species=all_species, 
+                               all_types=all_types)
 
 
 # ========================

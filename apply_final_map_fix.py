@@ -1,4 +1,10 @@
-{% extends "base.html" %}
+import os
+import re
+
+# ---------------------------------------------------------
+# 1. UPDATE TEMPLATE (Small Geometric Markers + Server Filters)
+# ---------------------------------------------------------
+map_html = """{% extends "base.html" %}
 {% block content %}
 
 <div class="row">
@@ -240,3 +246,73 @@ function locateUser() {
 }
 </script>
 {% endblock %}
+"""
+
+os.makedirs('templates', exist_ok=True)
+with open('templates/map.html', 'w') as f:
+    f.write(map_html)
+print("✅ Updated templates/map.html")
+
+# ---------------------------------------------------------
+# 2. UPDATE APP.PY (Inject Full Filter Data)
+# ---------------------------------------------------------
+# We will use Regex to find the existing map_view function and replace it completely.
+
+with open('app.py', 'r') as f:
+    content = f.read()
+
+# Define the new Route Function
+new_route = """
+    # ---------------- MAP VIEW ----------------
+    @app.route('/map')
+    def map_view():
+        # 1. Get mappable carcasses for the map
+        carcasses = Carcass.query.filter(
+            Carcass.latitude.isnot(None), 
+            Carcass.longitude.isnot(None)
+        ).all()
+
+        # 2. Get FULL unique lists for the dropdowns
+        all_sites = sorted({s.code for s in Site.query.all()})
+        
+        # Use simple distinct queries
+        all_species = [r[0] for r in db.session.query(Carcass.species).distinct().filter(Carcass.species.isnot(None)).all()]
+        all_types = [r[0] for r in db.session.query(Carcass.animal_type).distinct().filter(Carcass.animal_type.isnot(None)).all()]
+        
+        all_species.sort()
+        all_types.sort()
+
+        return render_template('map.html', 
+                               carcasses=carcasses, 
+                               all_sites=all_sites, 
+                               all_species=all_species, 
+                               all_types=all_types)
+"""
+
+# Regex pattern to match the existing map_view function block
+# Matches @app.route('/map') ... until the next @app.route or end of file
+pattern = r"@app\.route\('/map'\).*?return render_template\('map\.html'.*?\)"
+
+# Use re.DOTALL so . matches newlines
+match = re.search(pattern, content, re.DOTALL)
+
+if match:
+    print("Found existing map route. Replacing...")
+    # Replace the found block with our new code
+    new_content = content.replace(match.group(0), new_route.strip())
+    
+    with open('app.py', 'w') as f:
+        f.write(new_content)
+    print("✅ Updated app.py map logic successfully.")
+else:
+    print("⚠️ Could not find existing map route to update. Appending new route...")
+    # If strictly not found, append it (less ideal but works if clean)
+    anchor = "# ========================\n# GUNICORN ENTRYPOINT"
+    if anchor in content:
+        new_content = content.replace(anchor, new_route + "\n\n" + anchor)
+        with open('app.py', 'w') as f:
+            f.write(new_content)
+        print("✅ Appended new map route to app.py.")
+    else:
+        print("❌ Error: Could not find place to insert route.")
+
