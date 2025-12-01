@@ -1,0 +1,316 @@
+diff --git a/app.py b/app.py
+index a1b2c3d..e4f5g6h 100644
+--- a/app.py
++++ b/app.py
+@@ -402,6 +402,96 @@ def register_routes(app):
+         filename = f"samples_{ist_now().strftime('%Y%m%d_%H%M')}.csv"
+         return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
+ 
++    # ==========================================
++    #  EDIT & DELETE ROUTES (Admin Only)
++    # ==========================================
++
++    # ---------------- SITE OPERATIONS ----------------
++
++    @app.route('/site/<int:site_id>/edit', methods=['GET', 'POST'])
++    @login_required
++    def edit_site(site_id):
++        if not is_admin():
++            flash("Admin access required.")
++            return redirect(url_for('view_site', site_id=site_id))
++
++        site = Site.query.get_or_404(site_id)
++
++        if request.method == 'POST':
++            site.name = request.form.get('name')
++            site.description = request.form.get('description')
++            
++            db.session.commit()
++            flash(f"Site {site.code} updated.")
++            return redirect(url_for('view_site', site_id=site.id))
++
++        return render_template('edit_site.html', site=site)
++
++    @app.route('/site/<int:site_id>/delete', methods=['POST'])
++    @login_required
++    def delete_site(site_id):
++        if not is_admin():
++            flash("Admin access required.")
++            return redirect(url_for('index'))
++
++        site = Site.query.get_or_404(site_id)
++        
++        if Carcass.query.filter_by(site_id=site.id).first():
++            flash("Cannot delete site: It contains carcass records. Delete them first.")
++            return redirect(url_for('view_site', site_id=site_id))
++
++        db.session.delete(site)
++        db.session.commit()
++        flash(f"Site {site.name} deleted.")
++        return redirect(url_for('index'))
++
++    # ---------------- CARCASS OPERATIONS ----------------
++
++    @app.route('/carcass/<int:carcass_id>/edit', methods=['GET', 'POST'])
++    @login_required
++    def edit_carcass(carcass_id):
++        if not is_admin():
++            flash("Admin access required.")
++            return redirect(url_for('view_carcass', carcass_id=carcass_id))
++
++        c = Carcass.query.get_or_404(carcass_id)
++
++        if request.method == 'POST':
++            c.species = request.form.get('species')
++            c.notes = request.form.get('notes')
++            
++            lat = request.form.get('latitude')
++            lon = request.form.get('longitude')
++            if lat and lon:
++                c.latitude = lat
++                c.longitude = lon
++
++            db.session.commit()
++            flash(f"Carcass {c.code} updated.")
++            return redirect(url_for('view_carcass', carcass_id=c.id))
++
++        return render_template('edit_carcass.html', c=c)
++
++    @app.route('/carcass/<int:carcass_id>/delete', methods=['POST'])
++    @login_required
++    def delete_carcass(carcass_id):
++        if not is_admin():
++            flash("Admin access required.")
++            return redirect(url_for('index'))
++
++        c = Carcass.query.get_or_404(carcass_id)
++        site_id = c.site_id
++
++        if c.samples:
++            flash("Cannot delete carcass: It has samples recorded. Delete samples first.")
++            return redirect(url_for('view_carcass', carcass_id=carcass_id))
++
++        db.session.delete(c)
++        db.session.commit()
++        flash(f"Carcass {c.code} deleted.")
++        return redirect(url_for('view_site', site_id=site_id))
++
++    # ---------------- SAMPLE OPERATIONS ----------------
++
++    @app.route('/sample/<int:sample_id>/edit', methods=['GET', 'POST'])
++    @login_required
++    def edit_sample(sample_id):
++        if not is_admin():
++            flash("Admin access required.")
++            return redirect(url_for('view_sample', sample_id=sample_id))
++
++        s = Sample.query.get_or_404(sample_id)
++
++        if request.method == 'POST':
++            s.sample_type = request.form.get('sample_type')
++            s.storage = request.form.get('storage')
++            s.notes = request.form.get('notes')
++            
++            db.session.commit()
++            flash(f"Sample {s.label} updated.")
++            return redirect(url_for('view_sample', sample_id=s.id))
++
++        return render_template('edit_sample.html', s=s)
++
++    @app.route('/sample/<int:sample_id>/delete', methods=['POST'])
++    @login_required
++    def delete_sample(sample_id):
++        if not is_admin():
++            flash("Admin access required.")
++            return redirect(url_for('index'))
++
++        s = Sample.query.get_or_404(sample_id)
++        carcass_id = s.carcass_id
++        
++        db.session.delete(s)
++        db.session.commit()
++        
++        flash(f"Sample {s.label} deleted.")
++        return redirect(url_for('view_carcass', carcass_id=carcass_id))
++
+ # ========================
+ # GUNICORN ENTRYPOINT
+ # ========================
+diff --git a/templates/carcass.html b/templates/carcass.html
+index b3c4d5e..f6g7h8i 100644
+--- a/templates/carcass.html
++++ b/templates/carcass.html
+@@ -28,6 +28,22 @@
+       </div>
+     </div>
+ 
++    {% if current_user.is_authenticated and current_user.role == 'admin' %}
++      <div class="alert alert-light border mt-3 mb-0">
++        <div class="d-flex align-items-center justify-content-between">
++          <strong>Admin Options:</strong>
++          <div class="d-flex gap-2">
++            <a href="{{ url_for('edit_carcass', carcass_id=c.id) }}" class="btn btn-sm btn-outline-dark">
++              <i class="fa-solid fa-pen"></i> Edit
++            </a>
++            <form action="{{ url_for('delete_carcass', carcass_id=c.id) }}" method="POST" onsubmit="return confirm('Delete this Carcass?');">
++              <button class="btn btn-sm btn-outline-danger">
++                <i class="fa-solid fa-trash"></i> Delete
++              </button>
++            </form>
++          </div>
++        </div>
++      </div>
++    {% endif %}
++
+   </div>
+ </div>
+ 
+diff --git a/templates/edit_carcass.html b/templates/edit_carcass.html
+new file mode 100644
+index 0000000..a1b2c3d
+--- /dev/null
++++ b/templates/edit_carcass.html
+@@ -0,0 +1,28 @@
++{% extends "base.html" %}
++{% block content %}
++<div class="row justify-content-center">
++  <div class="col-lg-6">
++    <div class="card shadow-sm p-4">
++      <h3>Edit Carcass {{ c.code }}</h3>
++      <form method="POST">
++        <div class="mb-3">
++          <label class="form-label">Species</label>
++          <input name="species" class="form-control" value="{{ c.species }}">
++        </div>
++        <div class="row">
++          <div class="col-6 mb-3">
++             <label class="form-label">Latitude</label>
++             <input name="latitude" class="form-control" value="{{ c.latitude }}">
++          </div>
++          <div class="col-6 mb-3">
++             <label class="form-label">Longitude</label>
++             <input name="longitude" class="form-control" value="{{ c.longitude }}">
++          </div>
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Notes</label>
++          <textarea name="notes" class="form-control" rows="3">{{ c.notes }}</textarea>
++        </div>
++        <button class="btn btn-success w-100">Update Carcass</button>
++        <a href="{{ url_for('view_carcass', carcass_id=c.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
++      </form>
++    </div>
++  </div>
++</div>
++{% endblock %}
+diff --git a/templates/edit_sample.html b/templates/edit_sample.html
+new file mode 100644
+index 0000000..x1y2z3a
+--- /dev/null
++++ b/templates/edit_sample.html
+@@ -0,0 +1,22 @@
++{% extends "base.html" %}
++{% block content %}
++<div class="row justify-content-center">
++  <div class="col-lg-6">
++    <div class="card shadow-sm p-4">
++      <h3>Edit Sample {{ s.label }}</h3>
++      <form method="POST">
++        <div class="mb-3">
++          <label class="form-label">Sample Type</label>
++          <input name="sample_type" class="form-control" value="{{ s.sample_type }}">
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Storage</label>
++          <input name="storage" class="form-control" value="{{ s.storage }}">
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Notes</label>
++          <textarea name="notes" class="form-control" rows="3">{{ s.notes }}</textarea>
++        </div>
++        <button class="btn btn-success w-100">Update Sample</button>
++        <a href="{{ url_for('view_sample', sample_id=s.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
++      </form>
++    </div>
++  </div>
++</div>
++{% endblock %}
+diff --git a/templates/edit_site.html b/templates/edit_site.html
+new file mode 100644
+index 0000000..m1n2o3p
+--- /dev/null
++++ b/templates/edit_site.html
+@@ -0,0 +1,18 @@
++{% extends "base.html" %}
++{% block content %}
++<div class="row justify-content-center">
++  <div class="col-lg-6">
++    <div class="card shadow-sm p-4">
++      <h3>Edit Site: {{ site.name }}</h3>
++      <form method="POST">
++        <div class="mb-3">
++          <label class="form-label">Site Name</label>
++          <input name="name" class="form-control" value="{{ site.name }}" required>
++        </div>
++        <div class="mb-3">
++          <label class="form-label">Description</label>
++          <textarea name="description" class="form-control" rows="3">{{ site.description }}</textarea>
++        </div>
++        <button class="btn btn-success w-100">Update Site</button>
++        <a href="{{ url_for('view_site', site_id=site.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
++      </form>
++    </div>
++  </div>
++</div>
++{% endblock %}
+diff --git a/templates/sample.html b/templates/sample.html
+index 7a8b9c0..d1e2f3g 100644
+--- a/templates/sample.html
++++ b/templates/sample.html
+@@ -53,6 +53,18 @@
+         >
+       </div>
+ 
++    {% if current_user.is_authenticated and current_user.role == 'admin' %}
++      <div class="mt-4 pt-3 border-top text-end">
++        <div class="d-inline-flex gap-2">
++          <a href="{{ url_for('edit_sample', sample_id=s.id) }}" class="btn btn-sm btn-outline-dark">
++            <i class="fa-solid fa-pen"></i> Edit Sample
++          </a>
++          <form action="{{ url_for('delete_sample', sample_id=s.id) }}" method="POST" onsubmit="return confirm('Delete this Sample? This cannot be undone.');">
++            <button class="btn btn-sm btn-outline-danger">
++              <i class="fa-solid fa-trash"></i> Delete Sample
++            </button>
++          </form>
++        </div>
++      </div>
++    {% endif %}
++
+     </div>
+ 
+   </div>
+diff --git a/templates/view_site.html b/templates/view_site.html
+index 1a2b3c4..5d6e7f8 100644
+--- a/templates/view_site.html
++++ b/templates/view_site.html
+@@ -51,6 +51,19 @@
+ 
+       </div>
+ 
++    {% if current_user.is_authenticated and current_user.role == 'admin' %}
++      <hr class="mt-4">
++      <div class="d-flex justify-content-end gap-2">
++        <a href="{{ url_for('edit_site', site_id=site.id) }}" class="btn btn-sm btn-outline-dark">
++          <i class="fa-solid fa-pen"></i> Edit Site
++        </a>
++        <form action="{{ url_for('delete_site', site_id=site.id) }}" method="POST" onsubmit="return confirm('Delete this Site? This cannot be undone.');">
++          <button class="btn btn-sm btn-outline-danger">
++            <i class="fa-solid fa-trash"></i> Delete
++          </button>
++        </form>
++      </div>
++    {% endif %}
++
+     </div>
+ 
+   </div>

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm p-4">
+      <h3>Edit Site: {{ site.name }}</h3>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Site Name</label>
+          <input name="name" class="form-control" value="{{ site.name }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3">{{ site.description }}</textarea>
+        </div>
+        <button class="btn btn-success w-100">Update Site</button>
+        <a href="{{ url_for('view_site', site_id=site.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

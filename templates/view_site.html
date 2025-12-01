@@ -72,4 +72,15 @@
   </div>
 </div>
 
+
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+      <hr class="mt-4">
+      <div class="d-flex justify-content-end gap-2">
+        <a href="{{ url_for('edit_site', site_id=site.id) }}" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen"></i> Edit Site</a>
+        <form action="{{ url_for('delete_site', site_id=site.id) }}" method="POST" onsubmit="return confirm('Delete this Site?');">
+          <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+        </form>
+      </div>
+    {% endif %}
+
 {% endblock %}

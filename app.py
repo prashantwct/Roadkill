@@ -402,7 +402,7 @@ def register_routes(app):
 
         if request.method == 'POST':
             site_id = int(request.form['site_id'])
-            species = request.form.get('species')
+            species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
             dt = request.form.get('datetime')
             dt_obj = datetime.fromisoformat(dt) + timedelta(hours=5, minutes=30) if dt else ist_now()
 
@@ -437,7 +437,7 @@ def register_routes(app):
         c = Carcass.query.get_or_404(carcass_id)
 
         if request.method == 'POST':
-            sample_type = request.form.get('sample_type')
+            sample_type = (request.form.get('sample_type_custom') if request.form.get('sample_type_select') == 'Other' else request.form.get('sample_type_select'))
             collected_at_str = request.form.get('collected_at')
 
             collected_at = (
@@ -516,6 +516,119 @@ def register_routes(app):
 
         filename = f"samples_{ist_now().strftime('%Y%m%d_%H%M')}.csv"
         return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
+
+
+    # ==========================================
+    #  EDIT & DELETE ROUTES (Admin Only)
+    # ==========================================
+
+    @app.route('/site/<int:site_id>/edit', methods=['GET', 'POST'])
+    @login_required
+    def edit_site(site_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('view_site', site_id=site_id))
+        site = Site.query.get_or_404(site_id)
+        if request.method == 'POST':
+            site.name = request.form.get('name')
+            site.description = request.form.get('description')
+            db.session.commit()
+            flash(f"Site {site.code} updated.")
+            return redirect(url_for('view_site', site_id=site.id))
+        return render_template('edit_site.html', site=site)
+
+    @app.route('/site/<int:site_id>/delete', methods=['POST'])
+    @login_required
+    def delete_site(site_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('index'))
+        site = Site.query.get_or_404(site_id)
+        if Carcass.query.filter_by(site_id=site.id).first():
+            flash("Cannot delete site: It contains carcass records. Delete them first.")
+            return redirect(url_for('view_site', site_id=site_id))
+        db.session.delete(site)
+        db.session.commit()
+        flash(f"Site {site.name} deleted.")
+        return redirect(url_for('index'))
+
+    @app.route('/carcass/<int:carcass_id>/edit', methods=['GET', 'POST'])
+    @login_required
+    def edit_carcass(carcass_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('view_carcass', carcass_id=carcass_id))
+        c = Carcass.query.get_or_404(carcass_id)
+        if request.method == 'POST':
+            c.species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
+            c.notes = request.form.get('notes')
+            lat = request.form.get('latitude')
+            lon = request.form.get('longitude')
+            if lat and lon:
+                c.latitude = lat
+                c.longitude = lon
+            db.session.commit()
+            flash(f"Carcass {c.code} updated.")
+            return redirect(url_for('view_carcass', carcass_id=c.id))
+        return render_template('edit_carcass.html', c=c)
+
+    @app.route('/carcass/<int:carcass_id>/delete', methods=['POST'])
+    @login_required
+    def delete_carcass(carcass_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('index'))
+        c = Carcass.query.get_or_404(carcass_id)
+        site_id = c.site_id
+        if c.samples:
+            flash("Cannot delete carcass: It has samples recorded. Delete samples first.")
+            return redirect(url_for('view_carcass', carcass_id=carcass_id))
+        db.session.delete(c)
+        db.session.commit()
+        flash(f"Carcass {c.code} deleted.")
+        return redirect(url_for('view_site', site_id=site_id))
+
+    @app.route('/sample/<int:sample_id>/edit', methods=['GET', 'POST'])
+    @login_required
+    def edit_sample(sample_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('view_sample', sample_id=sample_id))
+        s = Sample.query.get_or_404(sample_id)
+        if request.method == 'POST':
+            s.sample_type = (request.form.get('sample_type_custom') if request.form.get('sample_type_select') == 'Other' else request.form.get('sample_type_select'))
+            s.storage = request.form.get('storage')
+            s.notes = request.form.get('notes')
+            db.session.commit()
+            flash(f"Sample {s.label} updated.")
+            return redirect(url_for('view_sample', sample_id=s.id))
+        return render_template('edit_sample.html', s=s)
+
+    @app.route('/sample/<int:sample_id>/delete', methods=['POST'])
+    @login_required
+    def delete_sample(sample_id):
+        if not is_admin():
+            flash("Admin access required.")
+            return redirect(url_for('index'))
+        s = Sample.query.get_or_404(sample_id)
+        carcass_id = s.carcass_id
+        db.session.delete(s)
+        db.session.commit()
+        flash(f"Sample {s.label} deleted.")
+        return redirect(url_for('view_carcass', carcass_id=carcass_id))
+
+
+
+    # ---------------- MAP VIEW ----------------
+    @app.route('/map')
+    def map_view():
+        # Get all carcasses that have GPS coordinates
+        carcasses = Carcass.query.filter(
+            Carcass.latitude.isnot(None), 
+            Carcass.longitude.isnot(None)
+        ).all()
+        return render_template('map.html', carcasses=carcasses)
+
 
 # ========================
 # GUNICORN ENTRYPOINT

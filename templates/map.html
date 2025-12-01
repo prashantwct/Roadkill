@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row">
+  <div class="col-lg-9 order-lg-2 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fa-solid fa-map-location-dot me-2"></i> Interactive Map</h5>
+        
+        <div class="d-flex gap-2">
+           <span id="countBadge" class="badge bg-secondary d-flex align-items-center">Loading...</span>
+           <button class="btn btn-sm btn-primary" onclick="locateUser()">
+             <i class="fa-solid fa-location-crosshairs me-1"></i> Me
+           </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div id="map" style="height: 75vh; width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 order-lg-1 mb-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-light fw-bold">
+        <i class="fa-solid fa-filter me-2"></i> Filters
+      </div>
+      <div class="card-body">
+        
+        <form id="filterForm">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Site</label>
+            <select id="siteFilter" class="form-select form-select-sm" onchange="applyFilters()">
+              <option value="all">All Sites</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Species</label>
+            <select id="speciesFilter" class="form-select form-select-sm" onchange="applyFilters()">
+              <option value="all">All Species</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Animal Type</label>
+            <select id="typeFilter" class="form-select form-select-sm" onchange="applyFilters()">
+              <option value="all">All Types</option>
+            </select>
+          </div>
+
+          <hr>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Date Range</label>
+            <input type="date" id="dateStart" class="form-control form-control-sm mb-2" onchange="applyFilters()">
+            <input type="date" id="dateEnd" class="form-control form-control-sm" onchange="applyFilters()">
+          </div>
+
+          <div class="d-grid">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">
+              <i class="fa-solid fa-rotate-right me-1"></i> Reset
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+var map;
+var userMarker;
+var allMarkers = []; 
+var layerGroup;      
+
+document.addEventListener("DOMContentLoaded", function() {
+  
+  // 1. Init Map
+  map = L.map('map').setView([20.5937, 78.9629], 5);
+  layerGroup = L.layerGroup().addTo(map);
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  // 2. Load Markers (Safe Injection)
+  var data = [];
+  
+  {% for c in carcasses %}
+    {% if c.latitude and c.longitude %}
+      data.push({
+        lat: {{ c.latitude }},
+        lng: {{ c.longitude }},
+        site: {{ c.site.code | tojson }},
+        species: {{ (c.species or 'Unknown') | tojson }},
+        type: {{ (c.animal_type or 'Unknown') | tojson }},
+        dateStr: "{{ c.datetime_found.strftime('%Y-%m-%d') }}", 
+        code: {{ c.code | tojson }},
+        link: "{{ url_for('view_carcass', carcass_id=c.id) }}"
+      });
+    {% endif %}
+  {% endfor %}
+
+  console.log("Loaded Markers:", data.length);
+
+  // 3. Create Leaflet Markers
+  data.forEach(d => {
+      var popupHtml = `
+        <div class="p-1">
+          <h6 class="mb-1 fw-bold text-primary">${d.code}</h6>
+          <div class="mb-2">
+            <span class="badge bg-secondary">${d.species}</span>
+            <span class="badge bg-light text-dark border">${d.type}</span>
+          </div>
+          <div class="small mb-2 text-muted">Found: ${d.dateStr}</div>
+          <a href="${d.link}" class="btn btn-sm btn-outline-primary w-100 mt-2">View</a>
+        </div>
+      `;
+      
+      var marker = L.marker([d.lat, d.lng]).bindPopup(popupHtml);
+      
+      allMarkers.push({
+        marker: marker,
+        data: d
+      });
+  });
+
+  // 4. Populate Dropdowns
+  populateDropdowns();
+
+  // 5. Apply Default (Show All)
+  applyFilters();
+
+  // 6. User Location
+  map.on('locationfound', function(e) {
+      var radius = e.accuracy;
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker(e.latlng).addTo(map)
+          .bindPopup("You are within " + Math.round(radius) + " meters").openPopup();
+      L.circle(e.latlng, radius).addTo(map);
+  });
+});
+
+function populateDropdowns() {
+  const sites = new Set();
+  const species = new Set();
+  const types = new Set();
+
+  allMarkers.forEach(item => {
+    sites.add(item.data.site);
+    species.add(item.data.species);
+    types.add(item.data.type);
+  });
+
+  addOptions('siteFilter', sites);
+  addOptions('speciesFilter', species);
+  addOptions('typeFilter', types);
+}
+
+function addOptions(id, setObj) {
+  const select = document.getElementById(id);
+  // Clear existing (except first 'All' option)
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+  
+  Array.from(setObj).sort().forEach(val => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = val;
+    select.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const siteVal = document.getElementById('siteFilter').value;
+  const speciesVal = document.getElementById('speciesFilter').value;
+  const typeVal = document.getElementById('typeFilter').value;
+  const startVal = document.getElementById('dateStart').value;
+  const endVal = document.getElementById('dateEnd').value;
+  
+  const startDate = startVal ? new Date(startVal) : null;
+  const endDate = endVal ? new Date(endVal) : null;
+
+  layerGroup.clearLayers();
+  let count = 0;
+
+  allMarkers.forEach(item => {
+    const d = item.data;
+    let match = true;
+    
+    if (siteVal !== 'all' && d.site !== siteVal) match = false;
+    if (speciesVal !== 'all' && d.species !== speciesVal) match = false;
+    if (typeVal !== 'all' && d.type !== typeVal) match = false;
+
+    if (match && (startDate || endDate)) {
+      const itemDate = new Date(d.dateStr);
+      if (startDate && itemDate < startDate) match = false;
+      if (endDate && itemDate > endDate) match = false;
+    }
+
+    if (match) {
+      item.marker.addTo(layerGroup);
+      count++;
+    }
+  });
+
+  document.getElementById('countBadge').textContent = count + " Found";
+
+  if (count > 0) {
+    const latLngs = allMarkers
+      .filter(m => layerGroup.hasLayer(m.marker))
+      .map(m => m.marker.getLatLng());
+    if (latLngs.length > 0) map.fitBounds(L.latLngBounds(latLngs).pad(0.1));
+  }
+}
+
+function resetFilters() {
+  document.getElementById('filterForm').reset();
+  applyFilters();
+}
+
+function locateUser() {
+  map.locate({setView: true, maxZoom: 16});
+}
+</script>
+{% endblock %}

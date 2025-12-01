@@ -1,23 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-
-<div class="row justify-content-center mt-3">
-  <div class="col-lg-7">
-
+<div class="row justify-content-center">
+  <div class="col-lg-6">
     <div class="card shadow-sm p-4">
-
-      <h3 class="mb-3">
-        <i class="fa-solid fa-vial me-2"></i>
-        New Sample for Carcass {{ c.code }}
-      </h3>
-
-      <p class="text-muted">
-        Species: <strong>{{ c.species }}</strong> •
-        Site: <strong>{{ c.site.code }}</strong>
-      </p>
-
+      <h3>Edit Sample {{ s.label }}</h3>
       <form method="POST">
-
+        
         <div class="mb-3">
           <label class="form-label">Sample Type</label>
           <select name="sample_type_select" id="sampleTypeSelect" class="form-select" onchange="checkSampleTypeOther()" required>
@@ -32,34 +20,17 @@
           </div>
         </div>
 
-        <input type="hidden" name="collected_at">
-
-        <div class="mb-3">
-          <label class="form-label">Collected By</label>
-          <input name="collected_by" class="form-control" value="{{ current_user.username }}" readonly>
-        </div>
-
         <div class="mb-3">
           <label class="form-label">Storage</label>
-          <input name="storage" class="form-control" placeholder="e.g. -80°C freezer">
+          <input name="storage" class="form-control" value="{{ s.storage }}">
         </div>
-
         <div class="mb-3">
           <label class="form-label">Notes</label>
-          <textarea name="notes" class="form-control" rows="3" placeholder="Optional"></textarea>
+          <textarea name="notes" class="form-control" rows="3">{{ s.notes }}</textarea>
         </div>
-
-        <div class="d-grid gap-2">
-          <button type="submit" name="action" value="add_more" class="btn btn-primary">
-            <i class="fa-solid fa-plus me-1"></i> Add Another Sample
-          </button>
-          <button type="submit" name="action" value="finish" class="btn btn-success">
-            <i class="fa-solid fa-check me-1"></i> Finish
-          </button>
-        </div>
-
+        <button class="btn btn-success w-100">Update Sample</button>
+        <a href="{{ url_for('view_sample', sample_id=s.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
       </form>
-
     </div>
   </div>
 </div>
@@ -76,9 +47,29 @@ function checkSampleTypeOther() {
   } else {
     customDiv.style.display = 'none';
     customInput.required = false;
-    customInput.value = "";
   }
 }
-</script>
 
+document.addEventListener("DOMContentLoaded", function() {
+  const savedType = "{{ s.sample_type }}";
+  const select = document.getElementById('sampleTypeSelect');
+  const customInput = document.getElementById('sampleTypeCustomInput');
+
+  let found = false;
+  for(let i=0; i<select.options.length; i++){
+    if(select.options[i].value === savedType){
+      select.selectedIndex = i;
+      found = true;
+      break;
+    }
+  }
+
+  // If the saved type isn't in the list (and isn't empty), it's a custom 'Other'
+  if(!found && savedType && savedType !== 'None') {
+    select.value = 'Other';
+    checkSampleTypeOther();
+    customInput.value = savedType;
+  }
+});
+</script>
 {% endblock %}
