@@ -1,11 +1,13 @@
-:root{
-  --brand:#0d6efd;
-}
-body{font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
-.navbar-brand{letter-spacing:0.3px}
-.card{border-radius:12px}
-.btn{border-radius:8px}
-.form-control, .form-select{border-radius:8px}
-.table thead th{background:#f8f9fa}
-.toast{box-shadow:0 4px 10px rgba(0,0,0,0.06)}
-.container-lg{max-width:1100px}
+
+:root{ --brand:#0d6efd; }
+body{ font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+.navbar-brand{ letter-spacing:0.3px; }
+.card{ border-radius:12px; transition: transform 0.2s ease-in-out, box-shadow 0.2s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+.btn{ border-radius:8px; transition: all 0.2s; position: relative; overflow: hidden; }
+.btn:active { transform: scale(0.97); }
+.btn-primary:hover { background-color: #0b5ed7; box-shadow: 0 4px 12px rgba(13,110,253,0.3); }
+.form-control, .form-select{ border-radius:8px; }
+.table thead th{ background:#f8f9fa; }
+.toast{ box-shadow:0 4px 10px rgba(0,0,0,0.06); }
+.container-lg{ max-width:1100px; }

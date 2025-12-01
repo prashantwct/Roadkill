@@ -1,4 +1,15 @@
-{% extends "base.html" %}
+import os
+import re
+
+print("🚀 Applying Final Features...")
+
+# ---------------------------------------------------------
+# 1. UPDATE MAP TEMPLATE (Add Hybrid Layer)
+# ---------------------------------------------------------
+# We need to inject the "Hybrid" layer definition into the existing map.html logic.
+# The easiest way is to rewrite the map template with the new layer added.
+
+map_html = """{% extends "base.html" %}
 {% block content %}
 
 <div class="row">
@@ -230,3 +241,63 @@ function resetFilters() { document.getElementById('filterForm').reset(); applyFi
 function locateUser() { map.locate({setView: true, maxZoom: 16}); }
 </script>
 {% endblock %}
+"""
+
+os.makedirs('templates', exist_ok=True)
+with open('templates/map.html', 'w') as f:
+    f.write(map_html)
+print("✅ Updated map.html with Hybrid Layer.")
+
+
+# ---------------------------------------------------------
+# 2. UPDATE CSV EXPORT (Add Lat/Lon)
+# ---------------------------------------------------------
+print("🔧 Updating CSV export...")
+with open('app.py', 'r') as f:
+    code = f.read()
+
+# Pattern for CSV header row
+header_pattern = r"cw\.writerow\(\[\s*'label'.*?'species'\s*\]\)"
+new_header = "cw.writerow(['label', 'uuid', 'sample_type', 'collected_by', 'collected_at_IST', 'storage', 'notes', 'carcass_id', 'carcass_code', 'site_code', 'species', 'latitude', 'longitude'])"
+
+# Pattern for CSV data row
+row_pattern = r"s\.carcass\.species if s\.carcass else ''\s*\]\)"
+new_row = "s.carcass.species if s.carcass else '', s.carcass.latitude if s.carcass else '', s.carcass.longitude if s.carcass else ''])"
+
+if "latitude" not in code:
+    code = re.sub(header_pattern, new_header, code)
+    code = re.sub(row_pattern, new_row, code)
+    with open('app.py', 'w') as f:
+        f.write(code)
+    print("✅ Added Latitude/Longitude to CSV Export.")
+else:
+    print("ℹ️ CSV export already seems to have coordinates.")
+
+
+# ---------------------------------------------------------
+# 3. UPDATE ADMIN DASHBOARD (Reactive Buttons)
+# ---------------------------------------------------------
+# We will inject some CSS into base.html (or app.css) to make buttons interactive
+# and update the dashboard template to use specific hover classes if needed.
+# For simplicity, let's update app.css to affect all buttons globally.
+
+css_content = """
+:root{ --brand:#0d6efd; }
+body{ font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+.navbar-brand{ letter-spacing:0.3px; }
+.card{ border-radius:12px; transition: transform 0.2s ease-in-out, box-shadow 0.2s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+.btn{ border-radius:8px; transition: all 0.2s; position: relative; overflow: hidden; }
+.btn:active { transform: scale(0.97); }
+.btn-primary:hover { background-color: #0b5ed7; box-shadow: 0 4px 12px rgba(13,110,253,0.3); }
+.form-control, .form-select{ border-radius:8px; }
+.table thead th{ background:#f8f9fa; }
+.toast{ box-shadow:0 4px 10px rgba(0,0,0,0.06); }
+.container-lg{ max-width:1100px; }
+"""
+
+with open('static/app.css', 'w') as f:
+    f.write(css_content)
+print("✅ Updated app.css with reactive button/card styles.")
+
+print("🎉 Final features applied. Restart app.")
