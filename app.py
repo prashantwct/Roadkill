@@ -405,7 +405,7 @@ def register_routes(app):
             site_id = int(request.form['site_id'])
             species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
             dt = request.form.get('datetime')
-            dt_obj = datetime.fromisoformat(dt) + timedelta(hours=5, minutes=30) if dt else ist_now()
+            dt_obj = datetime.fromisoformat(dt) if dt else ist_now()
 
             carcass = Carcass(
                 code=generate_unique_carcass_code(),
@@ -442,7 +442,7 @@ def register_routes(app):
             collected_at_str = request.form.get('collected_at')
 
             collected_at = (
-                datetime.fromisoformat(collected_at_str) + timedelta(hours=5, minutes=30)
+                datetime.fromisoformat(collected_at_str)
                 if collected_at_str else ist_now()
             )
 

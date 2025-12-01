@@ -1,4 +1,48 @@
-{% extends "base.html" %}
+import os
+import re
+
+print("🔧 Starting Fixes...")
+
+# ---------------------------------------------------------
+# 1. FIX TIMESTAMP LOGIC IN APP.PY
+# ---------------------------------------------------------
+# Problem: The code adds +5:30 to the User's input time.
+# Fix: Remove the timedelta addition for form inputs, keep it only for ist_now().
+
+with open('app.py', 'r') as f:
+    content = f.read()
+
+# Fix 1: New Carcass Route
+# Pattern: datetime.fromisoformat(dt) + timedelta(...)
+# We want: datetime.fromisoformat(dt)
+new_content = re.sub(
+    r'datetime\.fromisoformat\(dt\) \+ timedelta\(hours=5, minutes=30\)', 
+    'datetime.fromisoformat(dt)', 
+    content
+)
+
+# Fix 2: New Sample Route
+# Pattern: datetime.fromisoformat(collected_at_str) + timedelta(...)
+new_content = re.sub(
+    r'datetime\.fromisoformat\(collected_at_str\) \+ timedelta\(hours=5, minutes=30\)', 
+    'datetime.fromisoformat(collected_at_str)', 
+    new_content
+)
+
+if new_content != content:
+    with open('app.py', 'w') as f:
+        f.write(new_content)
+    print("✅ Fixed app.py: Removed double timezone addition.")
+else:
+    print("ℹ️  app.py timestamps appear to be already fixed or patterns didn't match.")
+
+
+# ---------------------------------------------------------
+# 2. RE-GENERATE MAP TEMPLATE (Fix Heatmap)
+# ---------------------------------------------------------
+# We switch to a reliable CDN for Leaflet.heat and ensure the layer is initialized correctly.
+
+map_html = """{% extends "base.html" %}
 {% block content %}
 
 <div class="row">
@@ -232,3 +276,11 @@ function locateUser() {
 }
 </script>
 {% endblock %}
+"""
+
+os.makedirs('templates', exist_ok=True)
+with open('templates/map.html', 'w') as f:
+    f.write(map_html)
+
+print("✅ Fixed templates/map.html: Updated Heatmap config & CDN.")
+print("🎉 Done! Restart your app to apply changes.")
