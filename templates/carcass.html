@@ -1,3 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
 
+<div class="container mt-4">
+
+  <div class="card shadow-sm p-4">
+    <h2 class="mb-3">
+      Carcass {{ c.code }}
+    </h2>
+
+    <p><strong>Species:</strong> {{ c.species }}</p>
+    <p><strong>Found:</strong> {{ to_ist(c.datetime_found) }}</p>
+    <p><strong>Reported by:</strong>
+      {{ c.reporter.username if c.reporter else 'unknown' }}
+    </p>
+
+    {% if c.latitude and c.longitude %}
+      <p><strong>Location:</strong> {{ c.latitude }}, {{ c.longitude }}</p>
+    {% endif %}
+
+    {% if c.notes %}
+      <p><strong>Notes:</strong><br>{{ c.notes }}</p>
+    {% endif %}
+
+    <div class="mt-3">
+      <a class="btn btn-primary" href="{{ url_for('new_sample', carcass_id=c.id) }}">
+        Add Sample
+      </a>
+
+      {% if is_admin() %}
+        <a class="btn btn-secondary" href="{{ url_for('edit_carcass', carcass_id=c.id) }}">
+          Edit
+        </a>
+
+        <form method="POST" action="{{ url_for('delete_carcass', carcass_id=c.id) }}"
+              style="display:inline;">
+          <button class="btn btn-danger"
+                  onclick="return confirm('Delete carcass and all samples?')">
+            Delete
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <h3 class="mt-4">Samples</h3>
+  <ul class="list-group mb-4">
+
+    {% for s in c.samples %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+
+        <div>
+          <p><strong>Type:</strong> {{ s.sample_type }}</p>
+          <p><strong>Collected:</strong> {{ to_ist(s.datetime_collected) }}</p>
+          {% if s.notes %}
+            <p>{{ s.notes }}</p>
+          {% endif %}
+        </div>
+
+        <div class="text-end">
+          {% if is_admin() %}
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{{ url_for('edit_sample', sample_id=s.id) }}">
+              Edit
+            </a>
+
+            <form method="POST"
+                  action="{{ url_for('delete_sample', sample_id=s.id) }}"
+                  style="display:inline;">
+              <button class="btn btn-sm btn-danger"
+                      onclick="return confirm('Delete sample?')">
+                Delete
+              </button>
+            </form>
+          {% endif %}
+        </div>
+
+      </li>
+    {% else %}
+      <li class="list-group-item">No samples yet.</li>
+    {% endfor %}
+
+  </ul>
+
+</div>
 
 {% endblock %}
+
+
+
