@@ -4,14 +4,12 @@
 <div class="container mt-4">
 
   <div class="card shadow-sm p-4">
-    <h2 class="mb-3">
-      Carcass {{ c.code }}
-    </h2>
+    <h2>Carcass {{ c.code }}</h2>
 
     <p><strong>Species:</strong> {{ c.species }}</p>
-    <p><strong>Found:</strong> {{ to_ist(c.datetime_found) }}</p>
+    <p><strong>Found:</strong> {{ c.datetime_found }}</p>
     <p><strong>Reported by:</strong>
-      {{ c.reporter.username if c.reporter else 'unknown' }}
+      {{ c.reporter.username if c.reporter else "unknown" }}
     </p>
 
     {% if c.latitude and c.longitude %}
@@ -43,15 +41,16 @@
     </div>
   </div>
 
-  <h3 class="mt-4">Samples</h3>
-  <ul class="list-group mb-4">
 
+  <h3 class="mt-4">Samples</h3>
+
+  <ul class="list-group mb-4">
     {% for s in c.samples %}
       <li class="list-group-item d-flex justify-content-between align-items-center">
 
         <div>
           <p><strong>Type:</strong> {{ s.sample_type }}</p>
-          <p><strong>Collected:</strong> {{ to_ist(s.datetime_collected) }}</p>
+          <p><strong>Collected:</strong> {{ s.collected_at }}</p>
           {% if s.notes %}
             <p>{{ s.notes }}</p>
           {% endif %}
@@ -79,12 +78,8 @@
     {% else %}
       <li class="list-group-item">No samples yet.</li>
     {% endfor %}
-
   </ul>
 
 </div>
 
 {% endblock %}
-
-
-
