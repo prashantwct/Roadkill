@@ -170,6 +170,7 @@ def create_app():
     login_manager.init_app(app)
 
     register_routes(app)
+    app.jinja_env.globals['is_admin'] = is_admin
     setup_database(app)
 
     return app
