@@ -412,6 +412,7 @@ def register_routes(app):
                 code=generate_unique_carcass_code(),
                 site_id=site_id,
                 reporter_id=current_user.id,
+                animal_type=animal_type,
                 species=species,
                 datetime_found=dt_obj,
                 latitude=request.form.get('latitude'),
