@@ -49,11 +49,31 @@
       <li class="list-group-item d-flex justify-content-between align-items-center">
 
         <div>
+
+          <!-- ADDED: Sample Code -->
+          <p><strong>Sample Code:</strong> {{ s.label }}</p>
+
           <p><strong>Type:</strong> {{ s.sample_type }}</p>
-          <p><strong>Collected:</strong> {{ s.collected_at }}</p>
+
+          <p><strong>Collected:</strong>
+            {% if s.collected_at %}
+              {{ s.collected_at.strftime('%Y-%m-%d %H:%M') }}
+            {% else %}
+              —
+            {% endif %}
+          </p>
+
           {% if s.notes %}
             <p>{{ s.notes }}</p>
           {% endif %}
+
+          <p>
+            <a href="{{ url_for('view_sample', sample_id=s.id) }}"
+               class="text-decoration-none">
+              View Sample →
+            </a>
+          </p>
+
         </div>
 
         <div class="text-end">
