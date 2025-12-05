@@ -393,7 +393,13 @@ def register_routes(app):
     @login_required
     def view_site(site_id):
         site = Site.query.get_or_404(site_id)
-        carcasses = Carcass.query.filter_by(site_id=site_id).all()
+        carcasses = (
+            Carcass.query
+            .filter_by(site_id=site_id)
+            .order_by(Carcass.datetime_found.desc())
+            .all()
+        )
+
         return render_template('view_site.html', site=site, carcasses=carcasses)
 
     # ---------------- NEW CARCASS ----------------
