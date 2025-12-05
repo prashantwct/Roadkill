@@ -405,6 +405,7 @@ def register_routes(app):
         if request.method == 'POST':
             site_id = int(request.form['site_id'])
             species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
+            animal_type = request.form.get("animal_type")
             dt = request.form.get('datetime')
             dt_obj = datetime.fromisoformat(dt) if dt else ist_now()
 
