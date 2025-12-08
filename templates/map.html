@@ -20,8 +20,8 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        z-index: 1000; /* Above Leaflet controls */
-        width: 280px;
+        z-index: 1000;
+        width: 300px; /* Slightly wider for dates */
         max-height: 85vh;
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(5px);
@@ -53,7 +53,7 @@
     .panel-collapsed { width: auto; }
     .panel-collapsed .panel-title { display: none; }
     
-    /* CUSTOM MARKER STYLES (Preserved) */
+    /* CUSTOM MARKER STYLES */
     .custom-marker { 
         border: 2px solid white; 
         box-shadow: 1px 1px 4px rgba(0,0,0,0.5); 
@@ -86,7 +86,8 @@
         </div>
         
         <div class="panel-body">
-            <label class="small fw-bold text-muted mb-2">VISUALIZATION</label>
+            
+            <label class="small fw-bold text-muted mb-2">MODE</label>
             <div class="btn-group w-100 mb-3" role="group">
                 <input type="radio" class="btn-check" name="visMode" id="modeCluster" autocomplete="off" checked onchange="applyFilters()">
                 <label class="btn btn-sm btn-outline-primary" for="modeCluster">Markers</label>
@@ -97,8 +98,23 @@
 
             <hr class="my-2">
 
-            <label class="small fw-bold text-muted mb-2">FILTERS</label>
-            
+            <label class="small fw-bold text-muted mb-2">SEARCH & FILTER</label>
+
+            <div class="mb-2">
+                <input type="text" id="searchCode" class="form-control form-control-sm" placeholder="Search Code (e.g. A102)..." oninput="applyFilters()">
+            </div>
+
+            <div class="mb-2 row g-1">
+                <div class="col-6">
+                    <label class="small text-muted" style="font-size: 0.75rem;">From</label>
+                    <input type="date" id="dateFrom" class="form-control form-control-sm" onchange="applyFilters()">
+                </div>
+                <div class="col-6">
+                    <label class="small text-muted" style="font-size: 0.75rem;">To</label>
+                    <input type="date" id="dateTo" class="form-control form-control-sm" onchange="applyFilters()">
+                </div>
+            </div>
+
             <div class="mb-2">
                 <label class="small">Site</label>
                 <select id="filterSite" class="form-select form-select-sm" onchange="applyFilters()">
@@ -188,18 +204,14 @@
     // ==========================================
     // 3. LAYER GROUPS
     // ==========================================
-    
-    // A. Cluster Group
     var markersLayer = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50
     });
-
-    // B. Heatmap Layer
-    var heatLayer = null; // Will be initialized when needed
+    var heatLayer = null;
 
     // ==========================================
-    // 4. HELPER: ICON GENERATOR (PRESERVED STYLE)
+    // 4. HELPER: ICON GENERATOR
     // ==========================================
     function getCustomIcon(type) {
         let className = 'marker-other';
@@ -223,16 +235,31 @@
     // 5. FILTER & RENDER LOGIC
     // ==========================================
     function applyFilters() {
+        // Get Dropdown Values
         const fSite = document.getElementById('filterSite').value;
         const fType = document.getElementById('filterType').value;
         const fSpecies = document.getElementById('filterSpecies').value;
         const isHeatmap = document.getElementById('modeHeat').checked;
 
+        // Get Search & Date Values
+        const searchVal = document.getElementById('searchCode').value.trim().toLowerCase();
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
         // 1. Filter Data
         const visibleData = rawData.filter(d => {
+            // Dropdowns
             if (fSite !== 'all' && d.site !== fSite) return false;
             if (fType !== 'all' && d.type !== fType) return false;
             if (fSpecies !== 'all' && d.species !== fSpecies) return false;
+            
+            // Search Code (Partial Match)
+            if (searchVal && !d.code.toLowerCase().includes(searchVal)) return false;
+
+            // Date Range
+            if (dateFrom && d.date < dateFrom) return false;
+            if (dateTo && d.date > dateTo) return false;
+
             return true;
         });
 
@@ -245,7 +272,7 @@
         if (isHeatmap) {
             // HEATMAP MODE
             document.getElementById('legendBox').style.display = 'none';
-            const heatPoints = visibleData.map(d => [d.lat, d.lng, 1.0]); // 1.0 intensity
+            const heatPoints = visibleData.map(d => [d.lat, d.lng, 1.0]); 
             heatLayer = L.heatLayer(heatPoints, {radius: 25, blur: 15, maxZoom: 12}).addTo(map);
         } else {
             // MARKER MODE
@@ -278,14 +305,20 @@
     }
     
     function resetFilters() {
+        // Reset Dropdowns
         document.getElementById('filterSite').value = 'all';
         document.getElementById('filterType').value = 'all';
         document.getElementById('filterSpecies').value = 'all';
+        // Reset Inputs
+        document.getElementById('searchCode').value = '';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        
         applyFilters();
     }
 
     // ==========================================
-    // 7. LIVE LOCATION (ALWAYS ON)
+    // 7. LIVE LOCATION
     // ==========================================
     var userMarker = null;
     var userCircle = null;
@@ -300,7 +333,6 @@
                 const acc = pos.coords.accuracy;
 
                 if (!userMarker) {
-                    // Create Blue Dot
                     userMarker = L.circleMarker([currentLat, currentLng], {
                         radius: 8, fillColor: "#4285F4", color: "#fff", weight: 2, fillOpacity: 1
                     }).addTo(map);
@@ -309,13 +341,9 @@
                         radius: acc, color: '#4285F4', fillOpacity: 0.1, weight: 0
                     }).addTo(map);
 
-                    // Add "Record Here" Popup
                     bindUserPopup(acc);
-                    
-                    // Initial Zoom
                     map.setView([currentLat, currentLng], 15);
                 } else {
-                    // Update
                     userMarker.setLatLng([currentLat, currentLng]);
                     userCircle.setLatLng([currentLat, currentLng]).setRadius(acc);
                     bindUserPopup(acc);
