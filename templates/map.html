@@ -6,52 +6,63 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
 <style>
-    /* Full height map area */
-    #map-container {
+    /* Full Map Layout */
+    #map-wrapper {
         position: relative;
-        height: calc(100vh - 70px); /* Adjust based on your navbar height */
+        height: calc(100vh - 56px); /* Adjusts for navbar height */
         width: 100%;
         overflow: hidden;
     }
-    #map { height: 100%; width: 100%; }
+    #map { height: 100%; width: 100%; z-index: 1; }
 
-    /* Floating Filter Panel */
-    .map-controls {
+    /* FLOATING PANEL STYLES */
+    .map-overlay-panel {
         position: absolute;
         top: 10px;
         right: 10px;
-        z-index: 1000;
+        z-index: 1000; /* Above Leaflet controls */
+        width: 280px;
+        max-height: 85vh;
         background: rgba(255, 255, 255, 0.95);
-        padding: 15px;
+        backdrop-filter: blur(5px);
         border-radius: 8px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        width: 250px;
-        max-height: 80vh;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-header {
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .panel-body {
+        padding: 15px;
         overflow-y: auto;
     }
 
-    /* Floating "Find Me" Button */
-    .locate-btn {
-        position: absolute;
-        bottom: 25px;
-        right: 10px;
-        z-index: 1000;
-        background: white;
-        border: 2px solid rgba(0,0,0,0.2);
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
+    /* COLLAPSED STATE */
+    .panel-collapsed .panel-body { display: none; }
+    .panel-collapsed { width: auto; }
+    .panel-collapsed .panel-title { display: none; }
+    
+    /* CUSTOM MARKER STYLES (Preserved) */
+    .custom-marker { 
+        border: 2px solid white; 
+        box-shadow: 1px 1px 4px rgba(0,0,0,0.5); 
     }
-    .locate-btn:active { transform: scale(0.95); }
+    .marker-wild { background-color: #dc3545; border-radius: 50%; }     /* Red Circle */
+    .marker-domestic { background-color: #000000; border-radius: 0%; }  /* Black Square */
+    .marker-other { background-color: #6c757d; border-radius: 50%; }    /* Grey Circle */
 
-    /* Live User Marker (Blue Pulse) */
+    /* LIVE LOCATION PULSE */
     .user-pulse {
         background: rgba(66, 133, 244, 0.4);
         border-radius: 50%;
@@ -63,173 +74,218 @@
         0% { transform: scale(0.5); opacity: 1; }
         100% { transform: scale(1.5); opacity: 0; }
     }
-    
-    /* Popup Styling */
-    .popup-header {
-        font-size: 1.1rem;
-        font-weight: bold;
-        border-bottom: 2px solid #dc3545;
-        margin-bottom: 5px;
-        padding-bottom: 5px;
-    }
 </style>
 
-<div id="map-container">
+<div id="map-wrapper">
     <div id="map"></div>
 
-    <div class="map-controls">
-        <h6 class="fw-bold mb-3"><i class="fa fa-filter"></i> Filters</h6>
+    <div id="filterPanel" class="map-overlay-panel">
+        <div class="panel-header" onclick="togglePanel()">
+            <span class="panel-title fw-bold"><i class="fa-solid fa-layer-group me-2"></i>Map Controls</span>
+            <i class="fa-solid fa-bars"></i>
+        </div>
         
-        <div class="mb-2">
-            <label class="small text-muted">Species</label>
-            <select id="filterSpecies" class="form-select form-select-sm" onchange="applyFilters()">
-                <option value="all">All Species</option>
-                {% for s in all_species %}
-                    <option value="{{ s }}">{{ s }}</option>
-                {% endfor %}
-            </select>
-        </div>
+        <div class="panel-body">
+            <label class="small fw-bold text-muted mb-2">VISUALIZATION</label>
+            <div class="btn-group w-100 mb-3" role="group">
+                <input type="radio" class="btn-check" name="visMode" id="modeCluster" autocomplete="off" checked onchange="applyFilters()">
+                <label class="btn btn-sm btn-outline-primary" for="modeCluster">Markers</label>
 
-        <div class="mb-2">
-            <label class="small text-muted">Type</label>
-            <select id="filterType" class="form-select form-select-sm" onchange="applyFilters()">
-                <option value="all">All Types</option>
-                {% for t in all_types %}
-                    <option value="{{ t }}">{{ t }}</option>
-                {% endfor %}
-            </select>
-        </div>
+                <input type="radio" class="btn-check" name="visMode" id="modeHeat" autocomplete="off" onchange="applyFilters()">
+                <label class="btn btn-sm btn-outline-danger" for="modeHeat">Heatmap</label>
+            </div>
 
-        <div class="mb-3">
-            <label class="small text-muted">Site</label>
-            <select id="filterSite" class="form-select form-select-sm" onchange="applyFilters()">
-                <option value="all">All Sites</option>
-                {% for site in all_sites %}
+            <hr class="my-2">
+
+            <label class="small fw-bold text-muted mb-2">FILTERS</label>
+            
+            <div class="mb-2">
+                <label class="small">Site</label>
+                <select id="filterSite" class="form-select form-select-sm" onchange="applyFilters()">
+                    <option value="all">All Sites</option>
+                    {% for site in all_sites %}
                     <option value="{{ site }}">{{ site }}</option>
-                {% endfor %}
-            </select>
-        </div>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <div class="d-grid">
-            <button class="btn btn-sm btn-outline-danger" onclick="resetFilters()">Reset</button>
-        </div>
-        
-        <hr>
-        <div class="small text-muted">
-            <strong>Total Visible:</strong> <span id="count-display">0</span>
+            <div class="mb-2">
+                <label class="small">Animal Type</label>
+                <select id="filterType" class="form-select form-select-sm" onchange="applyFilters()">
+                    <option value="all">All Types</option>
+                    {% for t in all_types %}
+                    <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="small">Species</label>
+                <select id="filterSpecies" class="form-select form-select-sm" onchange="applyFilters()">
+                    <option value="all">All Species</option>
+                    {% for s in all_species %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">Reset</button>
+                <span class="badge bg-secondary" id="countBadge">Loading...</span>
+            </div>
+            
+            <div id="legendBox" class="mt-3 small border-top pt-2">
+                <div class="d-flex align-items-center mb-1"><span class="marker-wild me-2" style="width:10px; height:10px; display:inline-block;"></span> Wild</div>
+                <div class="d-flex align-items-center mb-1"><span class="marker-domestic me-2" style="width:10px; height:10px; display:inline-block;"></span> Domestic</div>
+                <div class="d-flex align-items-center"><span class="marker-other me-2" style="width:10px; height:10px; display:inline-block;"></span> Other</div>
+            </div>
         </div>
     </div>
 
-    <button class="locate-btn" onclick="snapToUser()" title="Find My Location">
-        📍
+    <button class="btn btn-light shadow rounded-circle" 
+            style="position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px; z-index: 1000;"
+            onclick="snapToUser()">
+        <i class="fa-solid fa-crosshairs fa-lg"></i>
     </button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
 <script>
-    // 1. DATA INJECTION (Pass Flask data to JS)
-    const carcassData = [
+    // ==========================================
+    // 1. PREPARE DATA FROM FLASK
+    // ==========================================
+    const rawData = [
         {% for c in carcasses %}
         {
             id: {{ c.id }},
             code: "{{ c.code }}",
+            site: "{{ c.site.code }}",
             species: "{{ c.species }}",
             type: "{{ c.animal_type }}",
-            site: "{{ c.site.code }}",
             lat: {{ c.latitude }},
             lng: {{ c.longitude }},
             date: "{{ c.datetime_found.strftime('%Y-%m-%d') }}",
-            samples: {{ c.samples|length }}
+            link: "{{ url_for('view_carcass', carcass_id=c.id) }}"
         },
         {% endfor %}
     ];
 
+    // ==========================================
     // 2. INITIALIZE MAP
-    // Default center India
+    // ==========================================
     var map = L.map('map').setView([22.35, 78.66], 5);
 
-    // 3. DEFINE LAYERS
-    var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '© OpenStreetMap'
+    // Base Layers
+    var streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: 'OSM'});
+    var satMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom: 19, attribution: 'Esri'});
+    
+    streetMap.addTo(map);
+    L.control.layers({"Street": streetMap, "Satellite": satMap}).addTo(map);
+
+    // ==========================================
+    // 3. LAYER GROUPS
+    // ==========================================
+    
+    // A. Cluster Group
+    var markersLayer = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 50
     });
 
-    var satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19, attribution: '© Esri'
-    });
+    // B. Heatmap Layer
+    var heatLayer = null; // Will be initialized when needed
 
-    // Add default layer
-    streetLayer.addTo(map);
+    // ==========================================
+    // 4. HELPER: ICON GENERATOR (PRESERVED STYLE)
+    // ==========================================
+    function getCustomIcon(type) {
+        let className = 'marker-other';
+        let t = (type || '').toLowerCase();
+        
+        if (t.includes('wild') || t.includes('carnivore') || t.includes('herbivore')) {
+            className = 'marker-wild';
+        } else if (t.includes('domestic')) {
+            className = 'marker-domestic';
+        }
 
-    // Layer Control
-    var baseMaps = {
-        "Street View": streetLayer,
-        "Satellite": satLayer
-    };
-    L.control.layers(baseMaps).addTo(map);
-
-    // 4. MARKER CLUSTERING & FILTERING
-    var markers = L.markerClusterGroup(); // Initialize cluster group
-
-    function applyFilters() {
-        markers.clearLayers(); // Remove current pins
-
-        var selSpecies = document.getElementById('filterSpecies').value;
-        var selType = document.getElementById('filterType').value;
-        var selSite = document.getElementById('filterSite').value;
-        var count = 0;
-
-        carcassData.forEach(function(c) {
-            // Check logic
-            var matchSpecies = (selSpecies === 'all' || c.species === selSpecies);
-            var matchType = (selType === 'all' || c.type === selType);
-            var matchSite = (selSite === 'all' || c.site === selSite);
-
-            if (matchSpecies && matchType && matchSite) {
-                // Determine Icon Color based on Type (Simple logic)
-                var markerColor = 'blue';
-                if (c.type === 'Carnivore') markerColor = 'red';
-                else if (c.type === 'Herbivore') markerColor = 'green';
-                
-                // Create Marker
-                var marker = L.marker([c.lat, c.lng]);
-
-                // Bind Rich Popup
-                var popupContent = `
-                    <div style="min-width: 200px;">
-                        <div class="popup-header">${c.species}</div>
-                        <strong>Code:</strong> ${c.code}<br>
-                        <strong>Date:</strong> ${c.date}<br>
-                        <strong>Type:</strong> ${c.type}<br>
-                        <span class="badge ${c.samples > 0 ? 'bg-success' : 'bg-secondary'} mb-2">
-                            ${c.samples} Samples
-                        </span>
-                        <a href="/carcass/${c.id}" class="btn btn-primary btn-sm w-100 mt-2">View Record</a>
-                    </div>
-                `;
-                marker.bindPopup(popupContent);
-                markers.addLayer(marker); // Add to cluster
-                count++;
-            }
+        return L.divIcon({
+            className: 'custom-marker ' + className,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+            popupAnchor: [0, -6]
         });
-
-        map.addLayer(markers); // Add cluster group to map
-        document.getElementById('count-display').innerText = count;
     }
 
-    // Run filter once on load
-    applyFilters();
+    // ==========================================
+    // 5. FILTER & RENDER LOGIC
+    // ==========================================
+    function applyFilters() {
+        const fSite = document.getElementById('filterSite').value;
+        const fType = document.getElementById('filterType').value;
+        const fSpecies = document.getElementById('filterSpecies').value;
+        const isHeatmap = document.getElementById('modeHeat').checked;
 
+        // 1. Filter Data
+        const visibleData = rawData.filter(d => {
+            if (fSite !== 'all' && d.site !== fSite) return false;
+            if (fType !== 'all' && d.type !== fType) return false;
+            if (fSpecies !== 'all' && d.species !== fSpecies) return false;
+            return true;
+        });
+
+        // 2. Clear current layers
+        markersLayer.clearLayers();
+        if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+        map.removeLayer(markersLayer);
+
+        // 3. Render based on Mode
+        if (isHeatmap) {
+            // HEATMAP MODE
+            document.getElementById('legendBox').style.display = 'none';
+            const heatPoints = visibleData.map(d => [d.lat, d.lng, 1.0]); // 1.0 intensity
+            heatLayer = L.heatLayer(heatPoints, {radius: 25, blur: 15, maxZoom: 12}).addTo(map);
+        } else {
+            // MARKER MODE
+            document.getElementById('legendBox').style.display = 'block';
+            visibleData.forEach(d => {
+                let marker = L.marker([d.lat, d.lng], { icon: getCustomIcon(d.type) });
+                
+                let popup = `
+                    <div class="text-center p-1">
+                        <strong>${d.species}</strong><br>
+                        <span class="badge bg-light text-dark border">${d.code}</span><br>
+                        <span class="text-muted small">${d.date}</span><br>
+                        <a href="${d.link}" class="btn btn-sm btn-primary mt-2 w-100">View</a>
+                    </div>
+                `;
+                marker.bindPopup(popup);
+                markersLayer.addLayer(marker);
+            });
+            map.addLayer(markersLayer);
+        }
+
+        document.getElementById('countBadge').innerText = visibleData.length + " Found";
+    }
+
+    // ==========================================
+    // 6. UI FUNCTIONS
+    // ==========================================
+    function togglePanel() {
+        document.getElementById('filterPanel').classList.toggle('panel-collapsed');
+    }
+    
     function resetFilters() {
-        document.getElementById('filterSpecies').value = 'all';
-        document.getElementById('filterType').value = 'all';
         document.getElementById('filterSite').value = 'all';
+        document.getElementById('filterType').value = 'all';
+        document.getElementById('filterSpecies').value = 'all';
         applyFilters();
     }
 
     // ==========================================
-    //  5. LIVE LOCATION (ALWAYS ACTIVE)
+    // 7. LIVE LOCATION (ALWAYS ON)
     // ==========================================
     var userMarker = null;
     var userCircle = null;
@@ -238,86 +294,61 @@
 
     if ("geolocation" in navigator) {
         navigator.geolocation.watchPosition(
-            successLocation, 
-            errorLocation, 
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            (pos) => {
+                currentLat = pos.coords.latitude;
+                currentLng = pos.coords.longitude;
+                const acc = pos.coords.accuracy;
+
+                if (!userMarker) {
+                    // Create Blue Dot
+                    userMarker = L.circleMarker([currentLat, currentLng], {
+                        radius: 8, fillColor: "#4285F4", color: "#fff", weight: 2, fillOpacity: 1
+                    }).addTo(map);
+                    
+                    userCircle = L.circle([currentLat, currentLng], {
+                        radius: acc, color: '#4285F4', fillOpacity: 0.1, weight: 0
+                    }).addTo(map);
+
+                    // Add "Record Here" Popup
+                    bindUserPopup(acc);
+                    
+                    // Initial Zoom
+                    map.setView([currentLat, currentLng], 15);
+                } else {
+                    // Update
+                    userMarker.setLatLng([currentLat, currentLng]);
+                    userCircle.setLatLng([currentLat, currentLng]).setRadius(acc);
+                    bindUserPopup(acc);
+                }
+            },
+            (err) => console.warn("GPS Error", err),
+            { enableHighAccuracy: true, timeout: 10000 }
         );
     }
 
-    function successLocation(position) {
-        currentLat = position.coords.latitude;
-        currentLng = position.coords.longitude;
-        var acc = position.coords.accuracy;
-
-        if (!userMarker) {
-            // CREATE BLUE DOT
-            userMarker = L.circleMarker([currentLat, currentLng], {
-                radius: 8,
-                fillColor: "#4285F4",
-                color: "#fff",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 1
-            }).addTo(map);
-
-            // CREATE ACCURACY CIRCLE
-            userCircle = L.circle([currentLat, currentLng], {
-                radius: acc,
-                color: '#4285F4',
-                fillColor: '#4285F4',
-                fillOpacity: 0.1,
-                weight: 0
-            }).addTo(map);
-
-            // Bind "Record Here" Popup to the User Dot
-            var userPopup = `
-                <div class="text-center">
-                    <strong>You are here</strong><br>
-                    <span class="text-muted" style="font-size: 0.8em">Accuracy: ${Math.round(acc)}m</span><br>
-                    <a href="/carcass/new?site_id=1&latitude=${currentLat}&longitude=${currentLng}" 
-                       class="btn btn-success btn-sm mt-2">
-                       + Record Carcass Here
-                    </a>
-                </div>
-            `;
-            userMarker.bindPopup(userPopup);
-
-            // Zoom to user on first load
-            map.setView([currentLat, currentLng], 15);
-
-        } else {
-            // UPDATE POSITION
-            userMarker.setLatLng([currentLat, currentLng]);
-            userCircle.setLatLng([currentLat, currentLng]);
-            userCircle.setRadius(acc);
-            
-            // Update the "Record Here" link in the popup with new coords
-            var newPopup = `
-                <div class="text-center">
-                    <strong>You are here</strong><br>
-                    <span class="text-muted" style="font-size: 0.8em">Accuracy: ${Math.round(acc)}m</span><br>
-                    <a href="/carcass/new?site_id=1&latitude=${currentLat}&longitude=${currentLng}" 
-                       class="btn btn-success btn-sm mt-2">
-                       + Record Carcass Here
-                    </a>
-                </div>
-            `;
-            userMarker.setPopupContent(newPopup);
-        }
-    }
-
-    function errorLocation(err) {
-        console.log("GPS Error: " + err.message);
+    function bindUserPopup(acc) {
+        if(!userMarker) return;
+        userMarker.bindPopup(`
+            <div class="text-center">
+                <strong>Your Location</strong><br>
+                <small class="text-muted">±${Math.round(acc)}m accuracy</small><br>
+                <a href="/carcass/new?latitude=${currentLat}&longitude=${currentLng}" 
+                   class="btn btn-success btn-sm mt-2">+ Record Here</a>
+            </div>
+        `);
     }
 
     function snapToUser() {
         if (currentLat && currentLng) {
             map.setView([currentLat, currentLng], 18);
-            if (userMarker) userMarker.openPopup();
+            userMarker.openPopup();
         } else {
-            alert("Getting your location... ensure GPS is on.");
+            alert("Locating you...");
         }
     }
+
+    // Run on Load
+    applyFilters();
 
 </script>
 {% endblock %}
