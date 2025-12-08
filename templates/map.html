@@ -21,7 +21,7 @@
         top: 10px;
         right: 10px;
         z-index: 1000;
-        width: 300px; /* Slightly wider for dates */
+        width: 300px;
         max-height: 85vh;
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(5px);
@@ -88,12 +88,19 @@
         <div class="panel-body">
             
             <label class="small fw-bold text-muted mb-2">MODE</label>
-            <div class="btn-group w-100 mb-3" role="group">
-                <input type="radio" class="btn-check" name="visMode" id="modeCluster" autocomplete="off" checked onchange="applyFilters()">
+            <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="visMode" id="modeCluster" autocomplete="off" checked onchange="toggleVisMode()">
                 <label class="btn btn-sm btn-outline-primary" for="modeCluster">Markers</label>
 
-                <input type="radio" class="btn-check" name="visMode" id="modeHeat" autocomplete="off" onchange="applyFilters()">
+                <input type="radio" class="btn-check" name="visMode" id="modeHeat" autocomplete="off" onchange="toggleVisMode()">
                 <label class="btn btn-sm btn-outline-danger" for="modeHeat">Heatmap</label>
+            </div>
+            
+            <div id="clusteringOption" class="mt-2 form-check">
+                <input class="form-check-input" type="checkbox" id="chkClustering" checked onchange="applyFilters()">
+                <label class="form-check-label small" for="chkClustering">
+                    Enable Clustering
+                </label>
             </div>
 
             <hr class="my-2">
@@ -204,10 +211,15 @@
     // ==========================================
     // 3. LAYER GROUPS
     // ==========================================
-    var markersLayer = L.markerClusterGroup({
+    // Group A: Clustering Enabled
+    var markersClusterLayer = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50
     });
+    // Group B: Clustering Disabled (Raw Markers)
+    var markersRawLayer = L.layerGroup();
+    
+    // Group C: Heatmap
     var heatLayer = null;
 
     // ==========================================
@@ -234,12 +246,33 @@
     // ==========================================
     // 5. FILTER & RENDER LOGIC
     // ==========================================
+    
+    function toggleVisMode() {
+        const isHeatmap = document.getElementById('modeHeat').checked;
+        const clusterOption = document.getElementById('clusteringOption');
+        const legendBox = document.getElementById('legendBox');
+        
+        if (isHeatmap) {
+            clusterOption.style.opacity = '0.5';
+            clusterOption.style.pointerEvents = 'none';
+            legendBox.style.display = 'none';
+        } else {
+            clusterOption.style.opacity = '1';
+            clusterOption.style.pointerEvents = 'auto';
+            legendBox.style.display = 'block';
+        }
+        applyFilters();
+    }
+
     function applyFilters() {
-        // Get Dropdown Values
+        // Get Filter Values
         const fSite = document.getElementById('filterSite').value;
         const fType = document.getElementById('filterType').value;
         const fSpecies = document.getElementById('filterSpecies').value;
+        
+        // Get Mode Values
         const isHeatmap = document.getElementById('modeHeat').checked;
+        const useClustering = document.getElementById('chkClustering').checked;
 
         // Get Search & Date Values
         const searchVal = document.getElementById('searchCode').value.trim().toLowerCase();
@@ -248,35 +281,29 @@
 
         // 1. Filter Data
         const visibleData = rawData.filter(d => {
-            // Dropdowns
             if (fSite !== 'all' && d.site !== fSite) return false;
             if (fType !== 'all' && d.type !== fType) return false;
             if (fSpecies !== 'all' && d.species !== fSpecies) return false;
-            
-            // Search Code (Partial Match)
             if (searchVal && !d.code.toLowerCase().includes(searchVal)) return false;
-
-            // Date Range
             if (dateFrom && d.date < dateFrom) return false;
             if (dateTo && d.date > dateTo) return false;
-
             return true;
         });
 
-        // 2. Clear current layers
-        markersLayer.clearLayers();
+        // 2. Clear all layers
+        markersClusterLayer.clearLayers();
+        markersRawLayer.clearLayers();
         if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
-        map.removeLayer(markersLayer);
+        map.removeLayer(markersClusterLayer);
+        map.removeLayer(markersRawLayer);
 
         // 3. Render based on Mode
         if (isHeatmap) {
             // HEATMAP MODE
-            document.getElementById('legendBox').style.display = 'none';
             const heatPoints = visibleData.map(d => [d.lat, d.lng, 1.0]); 
             heatLayer = L.heatLayer(heatPoints, {radius: 25, blur: 15, maxZoom: 12}).addTo(map);
         } else {
             // MARKER MODE
-            document.getElementById('legendBox').style.display = 'block';
             visibleData.forEach(d => {
                 let marker = L.marker([d.lat, d.lng], { icon: getCustomIcon(d.type) });
                 
@@ -289,9 +316,21 @@
                     </div>
                 `;
                 marker.bindPopup(popup);
-                markersLayer.addLayer(marker);
+
+                // Decide where to add the marker
+                if (useClustering) {
+                    markersClusterLayer.addLayer(marker);
+                } else {
+                    markersRawLayer.addLayer(marker);
+                }
             });
-            map.addLayer(markersLayer);
+
+            // Add the correct group to the map
+            if (useClustering) {
+                map.addLayer(markersClusterLayer);
+            } else {
+                map.addLayer(markersRawLayer);
+            }
         }
 
         document.getElementById('countBadge').innerText = visibleData.length + " Found";
@@ -305,16 +344,17 @@
     }
     
     function resetFilters() {
-        // Reset Dropdowns
         document.getElementById('filterSite').value = 'all';
         document.getElementById('filterType').value = 'all';
         document.getElementById('filterSpecies').value = 'all';
-        // Reset Inputs
         document.getElementById('searchCode').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
+        // Reset modes defaults
+        document.getElementById('modeCluster').checked = true;
+        document.getElementById('chkClustering').checked = true;
         
-        applyFilters();
+        toggleVisMode(); // Update UI state
     }
 
     // ==========================================
