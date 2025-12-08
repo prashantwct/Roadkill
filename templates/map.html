@@ -1,232 +1,323 @@
 {% extends "base.html" %}
+
 {% block content %}
-
-<div class="row">
-  <!-- MAP COLUMN -->
-  <div class="col-lg-9 order-lg-2 mb-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fa-solid fa-map-location-dot me-2"></i> Interactive Map</h5>
-        
-        <div class="d-flex gap-2">
-           <span id="countBadge" class="badge bg-secondary d-flex align-items-center">Loading...</span>
-           <button class="btn btn-sm btn-primary" onclick="locateUser()">
-             <i class="fa-solid fa-location-crosshairs me-1"></i> Me
-           </button>
-        </div>
-      </div>
-      <div class="card-body p-0">
-        <div id="map" style="height: 75vh; width: 100%;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FILTERS COLUMN -->
-  <div class="col-lg-3 order-lg-1 mb-3">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-light fw-bold">
-        <i class="fa-solid fa-filter me-2"></i> Filters
-      </div>
-      <div class="card-body">
-        
-        <form id="filterForm">
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Site</label>
-            <select id="siteFilter" class="form-select form-select-sm" onchange="applyFilters()">
-              <option value="all">All Sites</option>
-              {% for site in all_sites %}
-                <option value="{{ site }}">{{ site }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Species</label>
-            <select id="speciesFilter" class="form-select form-select-sm" onchange="applyFilters()">
-              <option value="all">All Species</option>
-              {% for sp in all_species %}
-                <option value="{{ sp }}">{{ sp }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Animal Type</label>
-            <select id="typeFilter" class="form-select form-select-sm" onchange="applyFilters()">
-              <option value="all">All Types</option>
-              {% for t in all_types %}
-                <option value="{{ t }}">{{ t }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <hr>
-          <div class="d-grid">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">
-              <i class="fa-solid fa-rotate-right me-1"></i> Reset Filters
-            </button>
-          </div>
-        </form>
-
-        <div class="mt-4 small">
-           <strong>Legend:</strong>
-           <div class="d-flex align-items-center mt-2">
-             <span class="d-inline-block me-2" style="width:12px; height:12px; background:#dc3545; border-radius:50%; border:2px solid #fff; box-shadow:1px 1px 2px rgba(0,0,0,0.3);"></span>
-             Wild Animal (Red Circle)
-           </div>
-           <div class="d-flex align-items-center mt-2">
-             <span class="d-inline-block me-2" style="width:12px; height:12px; background:#000000; border:2px solid #fff; box-shadow:1px 1px 2px rgba(0,0,0,0.3);"></span>
-             Domestic Animal (Black Square)
-           </div>
-           <div class="d-flex align-items-center mt-2">
-             <span class="d-inline-block me-2" style="width:12px; height:12px; background:#6c757d; border-radius:50%; border:2px solid #fff; box-shadow:1px 1px 2px rgba(0,0,0,0.3);"></span>
-             Unknown/Other
-           </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- LEAFLET & PLUGINS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
 <style>
-  .custom-marker { border: 2px solid white; box-shadow: 1px 1px 4px rgba(0,0,0,0.5); }
-  .marker-wild { background-color: #dc3545; border-radius: 50%; }
-  .marker-domestic { background-color: #000000; border-radius: 0%; }
-  .marker-other { background-color: #6c757d; border-radius: 50%; }
+    /* Full height map area */
+    #map-container {
+        position: relative;
+        height: calc(100vh - 70px); /* Adjust based on your navbar height */
+        width: 100%;
+        overflow: hidden;
+    }
+    #map { height: 100%; width: 100%; }
+
+    /* Floating Filter Panel */
+    .map-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        width: 250px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    /* Floating "Find Me" Button */
+    .locate-btn {
+        position: absolute;
+        bottom: 25px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        border: 2px solid rgba(0,0,0,0.2);
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .locate-btn:active { transform: scale(0.95); }
+
+    /* Live User Marker (Blue Pulse) */
+    .user-pulse {
+        background: rgba(66, 133, 244, 0.4);
+        border-radius: 50%;
+        height: 100%;
+        width: 100%;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(0.5); opacity: 1; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+    
+    /* Popup Styling */
+    .popup-header {
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-bottom: 2px solid #dc3545;
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+    }
 </style>
 
-<script>
-var map, markerLayerGroup, heatLayer, allMarkers = []; 
+<div id="map-container">
+    <div id="map"></div>
 
-function getCustomIcon(type) {
-    let className = 'marker-other';
-    let t = (type || '').toLowerCase();
-    if (t.includes('wild')) className = 'marker-wild';
-    else if (t.includes('domestic')) className = 'marker-domestic';
-
-    return L.divIcon({
-        className: 'custom-marker ' + className,
-        iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -8]
-    });
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-  
-  // 1. Define Base Layers
-  var streetMap = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-  
-  var satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-  
-  // Hybrid: Satellite + Transparent Labels Overlay
-  var hybridMap = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
-      L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png', { maxZoom: 19, opacity: 0.7 }),
-      L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png', { maxZoom: 19, opacity: 0.7 })
-  ]);
-  // Fallback Hybrid (Simpler) if Stadia requires API key:
-  // Using OpenStreetMap on top with transparency? No, standard practice is pure Satellite or Annotated.
-  // Let's stick to Esri Satellite which often has labels baked in certain services, but here we will try a standard overlay approach.
-  // Actually, let's use Google Hybrid structure if possible, but Google requires API key.
-  // Best free alternative: CartoDB Dark Matter for "Dark" mode, or just Satellite.
-  // Let's use Esri World Imagery (Satellite) + CartoDB Voyager Labels (as transparent overlay)
-  
-  var hybridLabels = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { maxZoom: 19 })
-  ]);
-
-  // 2. Init Map
-  map = L.map('map', { center: [20.5937, 78.9629], zoom: 5, layers: [streetMap] });
-
-  // 3. Overlay Layers
-  markerLayerGroup = L.layerGroup().addTo(map);
-  heatLayer = L.heatLayer([], {radius: 20, blur: 15}).addTo(map);
-
-  // 4. Controls
-  L.control.layers(
-      { "Streets": streetMap, "Satellite": satelliteMap, "Hybrid (Sat+Labels)": hybridLabels },
-      { "Markers": markerLayerGroup, "Heatmap": heatLayer }
-  ).addTo(map);
-
-  // 5. Load Data
-  {% for c in carcasses %}
-    {% if c.latitude and c.longitude %}
-      var mData = {
-        lat: {{ c.latitude }},
-        lng: {{ c.longitude }},
-        site: {{ c.site.code | tojson }},
-        species: {{ (c.species or 'Unknown') | tojson }},
-        type: {{ (c.animal_type or 'Unknown') | tojson }},
-        dateStr: "{{ c.datetime_found.strftime('%Y-%m-%d') }}", 
-        code: {{ c.code | tojson }},
-        link: "{{ url_for('view_carcass', carcass_id=c.id) }}"
-      };
-      
-      var icon = getCustomIcon(mData.type);
-      
-      var popupHtml = `
-        <div class="p-1 text-center">
-          <h6 class="mb-1 fw-bold text-primary">${mData.code}</h6>
-          <div class="mb-2">
-            <span class="badge bg-dark">${mData.type}</span><br>
-            <span class="small text-muted">${mData.species}</span>
-          </div>
-          <a href="${mData.link}" class="btn btn-sm btn-outline-primary w-100 py-0">View</a>
+    <div class="map-controls">
+        <h6 class="fw-bold mb-3"><i class="fa fa-filter"></i> Filters</h6>
+        
+        <div class="mb-2">
+            <label class="small text-muted">Species</label>
+            <select id="filterSpecies" class="form-select form-select-sm" onchange="applyFilters()">
+                <option value="all">All Species</option>
+                {% for s in all_species %}
+                    <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
         </div>
-      `;
-      
-      var marker = L.marker([mData.lat, mData.lng], {icon: icon}).bindPopup(popupHtml);
-      allMarkers.push({ marker: marker, data: mData });
-    {% endif %}
-  {% endfor %}
 
-  applyFilters();
-  
-  map.on('locationfound', function(e) {
-      L.circleMarker(e.latlng, {radius: 8, color: '#0d6efd', fillColor: '#0d6efd', fillOpacity: 1}).addTo(map).bindPopup("You").openPopup();
-      L.circle(e.latlng, e.accuracy/2).addTo(map);
-  });
-});
+        <div class="mb-2">
+            <label class="small text-muted">Type</label>
+            <select id="filterType" class="form-select form-select-sm" onchange="applyFilters()">
+                <option value="all">All Types</option>
+                {% for t in all_types %}
+                    <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-function applyFilters() {
-  const siteVal = document.getElementById('siteFilter').value;
-  const speciesVal = document.getElementById('speciesFilter').value;
-  const typeVal = document.getElementById('typeFilter').value;
+        <div class="mb-3">
+            <label class="small text-muted">Site</label>
+            <select id="filterSite" class="form-select form-select-sm" onchange="applyFilters()">
+                <option value="all">All Sites</option>
+                {% for site in all_sites %}
+                    <option value="{{ site }}">{{ site }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-  markerLayerGroup.clearLayers();
-  var heatData = [];
-  var count = 0;
+        <div class="d-grid">
+            <button class="btn btn-sm btn-outline-danger" onclick="resetFilters()">Reset</button>
+        </div>
+        
+        <hr>
+        <div class="small text-muted">
+            <strong>Total Visible:</strong> <span id="count-display">0</span>
+        </div>
+    </div>
 
-  allMarkers.forEach(item => {
-    const d = item.data;
-    let match = true;
-    if (siteVal !== 'all' && d.site !== siteVal) match = false;
-    if (speciesVal !== 'all' && d.species !== speciesVal) match = false;
-    if (typeVal !== 'all' && d.type !== typeVal) match = false;
+    <button class="locate-btn" onclick="snapToUser()" title="Find My Location">
+        📍
+    </button>
+</div>
 
-    if (match) {
-      item.marker.addTo(markerLayerGroup);
-      heatData.push([d.lat, d.lng, 0.8]);
-      count++;
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+    // 1. DATA INJECTION (Pass Flask data to JS)
+    const carcassData = [
+        {% for c in carcasses %}
+        {
+            id: {{ c.id }},
+            code: "{{ c.code }}",
+            species: "{{ c.species }}",
+            type: "{{ c.animal_type }}",
+            site: "{{ c.site.code }}",
+            lat: {{ c.latitude }},
+            lng: {{ c.longitude }},
+            date: "{{ c.datetime_found.strftime('%Y-%m-%d') }}",
+            samples: {{ c.samples|length }}
+        },
+        {% endfor %}
+    ];
+
+    // 2. INITIALIZE MAP
+    // Default center India
+    var map = L.map('map').setView([22.35, 78.66], 5);
+
+    // 3. DEFINE LAYERS
+    var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© OpenStreetMap'
+    });
+
+    var satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: '© Esri'
+    });
+
+    // Add default layer
+    streetLayer.addTo(map);
+
+    // Layer Control
+    var baseMaps = {
+        "Street View": streetLayer,
+        "Satellite": satLayer
+    };
+    L.control.layers(baseMaps).addTo(map);
+
+    // 4. MARKER CLUSTERING & FILTERING
+    var markers = L.markerClusterGroup(); // Initialize cluster group
+
+    function applyFilters() {
+        markers.clearLayers(); // Remove current pins
+
+        var selSpecies = document.getElementById('filterSpecies').value;
+        var selType = document.getElementById('filterType').value;
+        var selSite = document.getElementById('filterSite').value;
+        var count = 0;
+
+        carcassData.forEach(function(c) {
+            // Check logic
+            var matchSpecies = (selSpecies === 'all' || c.species === selSpecies);
+            var matchType = (selType === 'all' || c.type === selType);
+            var matchSite = (selSite === 'all' || c.site === selSite);
+
+            if (matchSpecies && matchType && matchSite) {
+                // Determine Icon Color based on Type (Simple logic)
+                var markerColor = 'blue';
+                if (c.type === 'Carnivore') markerColor = 'red';
+                else if (c.type === 'Herbivore') markerColor = 'green';
+                
+                // Create Marker
+                var marker = L.marker([c.lat, c.lng]);
+
+                // Bind Rich Popup
+                var popupContent = `
+                    <div style="min-width: 200px;">
+                        <div class="popup-header">${c.species}</div>
+                        <strong>Code:</strong> ${c.code}<br>
+                        <strong>Date:</strong> ${c.date}<br>
+                        <strong>Type:</strong> ${c.type}<br>
+                        <span class="badge ${c.samples > 0 ? 'bg-success' : 'bg-secondary'} mb-2">
+                            ${c.samples} Samples
+                        </span>
+                        <a href="/carcass/${c.id}" class="btn btn-primary btn-sm w-100 mt-2">View Record</a>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+                markers.addLayer(marker); // Add to cluster
+                count++;
+            }
+        });
+
+        map.addLayer(markers); // Add cluster group to map
+        document.getElementById('count-display').innerText = count;
     }
-  });
 
-  if(heatLayer) heatLayer.setLatLngs(heatData);
-  document.getElementById('countBadge').textContent = count + " Found";
-  
-  if (count > 0) {
-     var group = new L.featureGroup(allMarkers.filter(m => markerLayerGroup.hasLayer(m.marker)).map(m => m.marker));
-     map.fitBounds(group.getBounds().pad(0.1));
-  }
-}
+    // Run filter once on load
+    applyFilters();
 
-function resetFilters() { document.getElementById('filterForm').reset(); applyFilters(); }
-function locateUser() { map.locate({setView: true, maxZoom: 16}); }
+    function resetFilters() {
+        document.getElementById('filterSpecies').value = 'all';
+        document.getElementById('filterType').value = 'all';
+        document.getElementById('filterSite').value = 'all';
+        applyFilters();
+    }
+
+    // ==========================================
+    //  5. LIVE LOCATION (ALWAYS ACTIVE)
+    // ==========================================
+    var userMarker = null;
+    var userCircle = null;
+    var currentLat = null;
+    var currentLng = null;
+
+    if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+            successLocation, 
+            errorLocation, 
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    function successLocation(position) {
+        currentLat = position.coords.latitude;
+        currentLng = position.coords.longitude;
+        var acc = position.coords.accuracy;
+
+        if (!userMarker) {
+            // CREATE BLUE DOT
+            userMarker = L.circleMarker([currentLat, currentLng], {
+                radius: 8,
+                fillColor: "#4285F4",
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(map);
+
+            // CREATE ACCURACY CIRCLE
+            userCircle = L.circle([currentLat, currentLng], {
+                radius: acc,
+                color: '#4285F4',
+                fillColor: '#4285F4',
+                fillOpacity: 0.1,
+                weight: 0
+            }).addTo(map);
+
+            // Bind "Record Here" Popup to the User Dot
+            var userPopup = `
+                <div class="text-center">
+                    <strong>You are here</strong><br>
+                    <span class="text-muted" style="font-size: 0.8em">Accuracy: ${Math.round(acc)}m</span><br>
+                    <a href="/carcass/new?site_id=1&latitude=${currentLat}&longitude=${currentLng}" 
+                       class="btn btn-success btn-sm mt-2">
+                       + Record Carcass Here
+                    </a>
+                </div>
+            `;
+            userMarker.bindPopup(userPopup);
+
+            // Zoom to user on first load
+            map.setView([currentLat, currentLng], 15);
+
+        } else {
+            // UPDATE POSITION
+            userMarker.setLatLng([currentLat, currentLng]);
+            userCircle.setLatLng([currentLat, currentLng]);
+            userCircle.setRadius(acc);
+            
+            // Update the "Record Here" link in the popup with new coords
+            var newPopup = `
+                <div class="text-center">
+                    <strong>You are here</strong><br>
+                    <span class="text-muted" style="font-size: 0.8em">Accuracy: ${Math.round(acc)}m</span><br>
+                    <a href="/carcass/new?site_id=1&latitude=${currentLat}&longitude=${currentLng}" 
+                       class="btn btn-success btn-sm mt-2">
+                       + Record Carcass Here
+                    </a>
+                </div>
+            `;
+            userMarker.setPopupContent(newPopup);
+        }
+    }
+
+    function errorLocation(err) {
+        console.log("GPS Error: " + err.message);
+    }
+
+    function snapToUser() {
+        if (currentLat && currentLng) {
+            map.setView([currentLat, currentLng], 18);
+            if (userMarker) userMarker.openPopup();
+        } else {
+            alert("Getting your location... ensure GPS is on.");
+        }
+    }
+
 </script>
 {% endblock %}
