@@ -4,6 +4,42 @@
 
 <h3 class="mb-4">
   <i class="fa-solid fa-map-location-dot me-2"></i>
+  <div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-3">
+      <i class="fa-solid fa-magnifying-glass me-2"></i>
+      Reverse Search Carcass by Sample Suffix
+    </h5>
+    <form action="{{ url_for('search_sample_suffix') }}" method="GET" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <label for="suffix" class="visually-hidden">Sample Suffix</label>
+        <input type="text" class="form-control" id="suffix" name="suffix" placeholder="e.g. 5E32" maxlength="4" required style="width: 140px; text-transform: uppercase;">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Search Suffix</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if custom_results %}
+  <div class="alert alert-info shadow-sm mb-4">
+    <h4 class="alert-heading h5 mb-2">Search Results</h4>
+    <p class="mb-3">Multiple carcasses share a sample matching that suffix:</p>
+    <div class="list-group">
+      {% for c in custom_results %}
+        <a href="{{ url_for('view_carcass', carcass_id=c.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Code: {{ c.code }}</strong> — Species: {{ c.species or 'Unknown' }} 
+            <span class="text-muted small ms-2">({{ c.animal_type or 'N/A' }})</span>
+          </div>
+          <span class="badge bg-secondary rounded-pill">View Carcass</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  <hr class="my-4">
+{% endif %}
   All Sites
 </h3>
 
