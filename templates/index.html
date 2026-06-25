@@ -80,7 +80,11 @@
         <a href="{{ url_for('view_sample', sample_id=s.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
           <div>
             <strong>{{ s.label }}</strong><br>
-            <span class="text-muted small">Species: {{ s.carcass.species or 'Unknown' }} | Type: {{ s.sample_type or 'N/A' }}</span>
+            <span class="text-muted small">
+              <strong>Carcass:</strong> {{ s.carcass.code if s.carcass else 'None' }} | 
+              <strong>Species:</strong> {{ s.carcass.species or 'Unknown' }} | 
+              <strong>Type:</strong> {{ s.sample_type or 'N/A' }}
+            </span>
           </div>
           <span class="badge bg-success rounded-pill">View Sample</span>
         </a>
@@ -90,7 +94,6 @@
   </div>
   <hr class="my-4">
 {% endif %}
-
 <h3 class="mb-4">
   <i class="fa-solid fa-map-location-dot me-2"></i>
   All Sites
