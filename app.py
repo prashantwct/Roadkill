@@ -146,6 +146,21 @@ def generate_qr_for_label(label):
     img.save(path)
     return path
 
+def get_carcasses_by_label_suffix(suffix):
+    """
+    Searches for samples ending with the given 4-character suffix 
+    and returns a list of unique associated carcass objects.
+    """
+    if not suffix or len(suffix) != 4:
+        return []
+        
+    suffix = suffix.upper() # Match uppercase label pattern
+    matching_samples = Sample.query.filter(Sample.label.like(f"%-{suffix}")).all()
+    
+    # Extract unique carcasses using a set to filter out duplicate matches
+    carcasses = {s.carcass for s in matching_samples if s.carcass}
+    return list(carcasses)
+
 # ========================
 # APPLICATION FACTORY
 # ========================
@@ -526,6 +541,33 @@ def register_routes(app):
 
         filename = f"samples_{ist_now().strftime('%Y%m%d_%H%M')}.csv"
         return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
+
+    # ---------------- REVERSE SEARCH BY SUFFIX ----------------
+    @app.route('/search_sample')
+    @login_required
+    def search_sample_suffix():
+        suffix = request.args.get('suffix', '').strip()
+        
+        if not suffix:
+            flash("Please provide a 4-character sample label suffix.")
+            return redirect(url_for('index'))
+            
+        if len(suffix) != 4:
+            flash("The suffix must be exactly 4 characters long.")
+            return redirect(url_for('index'))
+            
+        carcasses = get_carcasses_by_label_suffix(suffix)
+        
+        if not carcasses:
+            flash(f"No carcass found matching sample suffix: {suffix.upper()}")
+            return redirect(url_for('index'))
+            
+        # Optimization: If exactly one matching carcass is found, go straight to it
+        if len(carcasses) == 1:
+            return redirect(url_for('view_carcass', carcass_id=carcasses[0].id))
+            
+        # In case of rare randomized collisions, display matching results on the dashboard
+        return render_template('index.html', sites=Site.query.all(), custom_results=carcasses)
 
 
     # ==========================================
