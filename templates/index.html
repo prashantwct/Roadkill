@@ -59,12 +59,12 @@
 
 {% if custom_results %}
   <div class="alert alert-info shadow-sm mb-4">
-    <h4 class="alert-heading h5 mb-2">Carcass Results</h4>
+    <h4 class="alert-heading h5 mb-2">Encounter Results</h4>
     <div class="list-group">
       {% for c in custom_results %}
         <a href="{{ url_for('view_carcass', carcass_id=c.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
           <div><strong>Code: {{ c.code }}</strong> — Species: {{ c.species or 'Unknown' }}</div>
-          <span class="badge bg-secondary rounded-pill">View Carcass</span>
+          <span class="badge bg-secondary rounded-pill">View Record</span>
         </a>
       {% endfor %}
     </div>
@@ -83,7 +83,7 @@
           <div>
             <strong>{{ s.label }}</strong><br>
             <span class="text-muted small">
-              <strong>Carcass:</strong> {{ s.carcass.code if s.carcass else 'None' }} | 
+              <strong>Record Code:</strong> {{ s.carcass.code if s.carcass else 'None' }} | 
               <strong>Species:</strong> {{ s.carcass.species or 'Unknown' }} | 
               <strong>Type:</strong> {{ s.sample_type or 'N/A' }}
             </span>
@@ -98,6 +98,38 @@
 {% endif %}
 
 <h3 class="mb-4">
+  <i class="fa-solid fa-flask-vial me-2"></i>
+  Recent Lab Results
+</h3>
+
+{% if processed_samples %}
+  <div class="card shadow-sm mb-5">
+    <div class="list-group list-group-flush">
+      {% for s in processed_samples %}
+        <div class="list-group-item py-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">
+              <span class="badge bg-success me-2">Processed</span> 
+              {{ s.label }}
+            </h6>
+            <a href="{{ url_for('view_sample', sample_id=s.id) }}" class="btn btn-sm btn-outline-secondary">View Details</a>
+          </div>
+          <p class="mb-1 small">
+            <strong>Species:</strong> {{ s.carcass.species or 'Unknown' }} | 
+            <strong>Type:</strong> {{ s.sample_type or 'N/A' }}
+          </p>
+          <div class="p-2 bg-light border rounded small mt-2">
+            <strong>Result:</strong> {{ s.processing_result or 'No result text provided.' }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <p class="text-muted mb-5">No samples have been marked as processed yet.</p>
+{% endif %}
+
+<h3 class="mb-4 mt-5">
   <i class="fa-solid fa-map-location-dot me-2"></i>
   All Sites
 </h3>
@@ -116,7 +148,7 @@
             </h5>
 
             <p class="text-muted small mb-2">
-              {{ s.carcasses|length }} carcasses recorded
+              {{ s.carcasses|length }} encounters recorded
             </p>
 
           </div>
@@ -148,7 +180,7 @@
   {% endif %}
 
   <a href="{{ url_for('new_carcass') }}" class="btn btn-secondary">
-    <i class="fa-solid fa-skull-crossbones me-1"></i> Record Carcass
+    <i class="fa-solid fa-paw me-1"></i> Record Animal Encounter
   </a>
 
   <a href="{{ url_for('export_samples') }}" class="btn btn-outline-dark">
