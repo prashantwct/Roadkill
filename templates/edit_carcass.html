@@ -1,17 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="row justify-content-center">
-  <div class="col-lg-6">
+<div class="row justify-content-center mt-3">
+  <div class="col-lg-8">
     <div class="card shadow-sm p-4">
 
-      <h3 class="mb-3">Edit Carcass {{ c.code }}</h3>
+      <h3 class="mb-3">
+        <i class="fa-solid fa-pen-to-square me-2"></i>
+        Edit Encounter Record {{ c.code }}
+      </h3>
 
       <form method="POST">
 
+        <div class="mb-3">
+          <label for="encounter_type" class="form-label fw-bold">Encounter / Incident Type</label>
+          <select class="form-select" id="encounter_type" name="encounter_type" required>
+            <option value="Roadkill" {% if c.encounter_type == 'Roadkill' %}selected{% endif %}>🚗 Roadkill</option>
+            <option value="Opportunistic Mortality" {% if c.encounter_type == 'Opportunistic Mortality' %}selected{% endif %}>💀 Opportunistic Mortality (Found Dead)</option>
+            <option value="Rescue / Live Animal" {% if c.encounter_type == 'Rescue / Live Animal' %}selected{% endif %}>🐾 Rescue / Live Animal</option>
+            <option value="Active Surveillance" {% if c.encounter_type == 'Active Surveillance' %}selected{% endif %}>🔬 Active Surveillance (Captured & Released)</option>
+            <option value="Other" {% if c.encounter_type == 'Other' %}selected{% endif %}>❓ Other</option>
+          </select>
+        </div>
+
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">Animal Type</label>
+            <label class="form-label fw-bold">Animal Type</label>
             <select name="animal_type" id="animalType" class="form-select" onchange="updateSpeciesOptions()">
               <option value="Unknown" {% if c.animal_type == 'Unknown' %}selected{% endif %}>Unknown</option>
               <option value="Wild Animal" {% if c.animal_type == 'Wild Animal' %}selected{% endif %}>Wild Animal</option>
@@ -20,7 +34,7 @@
           </div>
 
           <div class="col-md-6 mb-3">
-            <label class="form-label">Species</label>
+            <label class="form-label fw-bold">Species</label>
             <select name="species_select" id="speciesSelect" class="form-select" onchange="checkSpeciesOther()">
               </select>
             
@@ -32,21 +46,23 @@
 
         <div class="row">
           <div class="col-6 mb-3">
-             <label class="form-label">Latitude</label>
+             <label class="form-label fw-bold">Latitude</label>
              <input name="latitude" class="form-control" value="{{ c.latitude }}">
           </div>
           <div class="col-6 mb-3">
-             <label class="form-label">Longitude</label>
+             <label class="form-label fw-bold">Longitude</label>
              <input name="longitude" class="form-control" value="{{ c.longitude }}">
           </div>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Notes</label>
+          <label class="form-label fw-bold">Notes</label>
           <textarea name="notes" class="form-control" rows="3">{{ c.notes }}</textarea>
         </div>
 
-        <button class="btn btn-success w-100">Update Carcass</button>
+        <button class="btn btn-success w-100">
+          <i class="fa-solid fa-check me-1"></i> Update Record
+        </button>
         <a href="{{ url_for('view_carcass', carcass_id=c.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
       </form>
 
