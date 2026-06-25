@@ -681,22 +681,31 @@ def register_routes(app):
         flash(f"Carcass {c.code} deleted.")
         return redirect(url_for('view_site', site_id=site_id))
 
-    @app.route('/sample/<int:sample_id>/edit', methods=['GET', 'POST'])
+   @app.route('/sample/<int:sample_id>/edit', methods=['GET', 'POST'])
     @login_required
     def edit_sample(sample_id):
         if not is_admin():
             flash("Admin access required.")
             return redirect(url_for('view_sample', sample_id=sample_id))
+            
         s = Sample.query.get_or_404(sample_id)
+        
         if request.method == 'POST':
-            s.sample_type = (request.form.get('sample_type_custom') if request.form.get('sample_type_select') == 'Other' else request.form.get('sample_type_select'))
+            raw_sample_type = (request.form.get('sample_type_custom') if request.form.get('sample_type_select') == 'Other' else request.form.get('sample_type_select'))
+            s.sample_type = raw_sample_type.strip().title() if raw_sample_type else None
+            
             s.storage = request.form.get('storage')
             s.notes = request.form.get('notes')
+            
+            # --- SAVE NEW RESULTS FIELDS ---
+            s.status = request.form.get('status')
+            s.processing_result = request.form.get('processing_result')
+            
             db.session.commit()
             flash(f"Sample {s.label} updated.")
             return redirect(url_for('view_sample', sample_id=s.id))
+            
         return render_template('edit_sample.html', s=s)
-
     @app.route('/sample/<int:sample_id>/delete', methods=['POST'])
     @login_required
     def delete_sample(sample_id):
