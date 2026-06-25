@@ -459,7 +459,7 @@ def register_routes(app):
 
         return render_template('view_site.html', site=site, carcasses=carcasses)
 
-    # ---------------- NEW CARCASS ----------------
+   # ---------------- NEW CARCASS ----------------
     @app.route('/carcass/new', methods=['GET', 'POST'])
     @login_required
     def new_carcass():
@@ -467,8 +467,17 @@ def register_routes(app):
 
         if request.method == 'POST':
             site_id = int(request.form['site_id'])
-            species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
-            animal_type = request.form.get("animal_type")
+            
+            # Extract and Clean strings
+            raw_species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
+            species = raw_species.strip().title() if raw_species else None
+            
+            raw_animal_type = request.form.get("animal_type")
+            animal_type = raw_animal_type.strip().title() if raw_animal_type else None
+            
+            # Capture the new encounter type
+            encounter_type = request.form.get('encounter_type', 'Roadkill')
+
             dt = request.form.get('datetime')
             dt_obj = datetime.fromisoformat(dt) if dt else ist_now()
 
@@ -478,6 +487,7 @@ def register_routes(app):
                 reporter_id=current_user.id,
                 animal_type=animal_type,
                 species=species,
+                encounter_type=encounter_type,  # <-- Added this field
                 datetime_found=dt_obj,
                 latitude=request.form.get('latitude'),
                 longitude=request.form.get('longitude'),
@@ -486,7 +496,7 @@ def register_routes(app):
             db.session.add(carcass)
             db.session.commit()
 
-            flash("Carcass recorded.")
+            flash("Animal encounter recorded successfully.")
             return redirect(url_for('view_carcass', carcass_id=carcass.id))
 
         return render_template('new_carcass.html', sites=Site.query.all(), site_id=site_id)
