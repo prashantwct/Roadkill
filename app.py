@@ -66,6 +66,7 @@ class Carcass(db.Model):
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     species = db.Column(db.String(140))
     animal_type = db.Column(db.String(50))
+    encounter_type = db.Column(db.String(50), default='Roadkill')
     datetime_found = db.Column(db.DateTime, default=ist_now)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
