@@ -681,7 +681,7 @@ def register_routes(app):
         flash(f"Carcass {c.code} deleted.")
         return redirect(url_for('view_site', site_id=site_id))
 
-   @app.route('/sample/<int:sample_id>/edit', methods=['GET', 'POST'])
+    @app.route('/sample/<int:sample_id>/edit', methods=['GET', 'POST'])
     @login_required
     def edit_sample(sample_id):
         if not is_admin():
