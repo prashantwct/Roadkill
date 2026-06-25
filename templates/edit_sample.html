@@ -24,10 +24,26 @@
           <label class="form-label">Storage</label>
           <input name="storage" class="form-control" value="{{ s.storage }}">
         </div>
+        
         <div class="mb-3">
           <label class="form-label">Notes</label>
           <textarea name="notes" class="form-control" rows="3">{{ s.notes }}</textarea>
         </div>
+
+        <div class="mb-3">
+          <label for="status" class="form-label fw-bold">Lab Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="Pending" {% if s.status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Processed" {% if s.status == 'Processed' %}selected{% endif %}>Processed</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label for="processing_result" class="form-label fw-bold">Processing Result</label>
+          <textarea class="form-control" id="processing_result" name="processing_result" rows="4" placeholder="Enter lab findings here...">{{ s.processing_result or '' }}</textarea>
+          <div class="form-text">If status is marked as 'Processed', please include the findings above.</div>
+        </div>
+
         <button class="btn btn-success w-100">Update Sample</button>
         <a href="{{ url_for('view_sample', sample_id=s.id) }}" class="btn btn-link w-100 mt-2">Cancel</a>
       </form>
