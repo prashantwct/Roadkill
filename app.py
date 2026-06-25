@@ -662,20 +662,29 @@ def register_routes(app):
         if not is_admin():
             flash("Admin access required.")
             return redirect(url_for('view_carcass', carcass_id=carcass_id))
+            
         c = Carcass.query.get_or_404(carcass_id)
+        
         if request.method == 'POST':
-            c.species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
+            # Extract and Clean Species
+            raw_species = (request.form.get('species_custom') if request.form.get('species_select') == 'Other' else request.form.get('species_select'))
+            c.species = raw_species.strip().title() if raw_species else None
+            
+            # Update the encounter type
+            c.encounter_type = request.form.get('encounter_type')
+            
             c.notes = request.form.get('notes')
             lat = request.form.get('latitude')
             lon = request.form.get('longitude')
             if lat and lon:
                 c.latitude = lat
                 c.longitude = lon
+                
             db.session.commit()
-            flash(f"Carcass {c.code} updated.")
+            flash(f"Record {c.code} updated.") 
             return redirect(url_for('view_carcass', carcass_id=c.id))
+            
         return render_template('edit_carcass.html', c=c)
-
     @app.route('/carcass/<int:carcass_id>/delete', methods=['POST'])
     @login_required
     def delete_carcass(carcass_id):
