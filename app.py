@@ -86,6 +86,10 @@ class Sample(db.Model):
     storage = db.Column(db.String(120))
     notes = db.Column(db.Text)
     qr_path = db.Column(db.String(300))
+    
+    # --- NEW COLUMNS FOR RESULTS ---
+    status = db.Column(db.String(50), default='Pending')
+    processing_result = db.Column(db.Text)
 
 @login_manager.user_loader
 def load_user(user_id):
