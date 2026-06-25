@@ -203,7 +203,44 @@ def register_routes(app):
     @app.route('/')
     def index():
         sites = Site.query.all()
-        return render_template('index.html', sites=sites)
+        # Fetch dynamic lists for the search dropdowns
+        all_species = sorted([r[0] for r in db.session.query(Carcass.species).distinct().filter(Carcass.species.isnot(None)).all()])
+        all_sample_types = sorted([r[0] for r in db.session.query(Sample.sample_type).distinct().filter(Sample.sample_type.isnot(None)).all()])
+        
+        return render_template('index.html', sites=sites, all_species=all_species, all_sample_types=all_sample_types)
+
+    # ---------------- SEARCH LABELS BY SPECIES & TYPE ----------------
+    @app.route('/search_labels')
+    @login_required
+    def search_labels():
+        species = request.args.get('species', '')
+        sample_type = request.args.get('sample_type', '')
+        
+        # Start a query joining Sample to Carcass so we can filter by Carcass.species
+        query = Sample.query.join(Carcass)
+        
+        if species:
+            query = query.filter(Carcass.species == species)
+        if sample_type:
+            query = query.filter(Sample.sample_type == sample_type)
+            
+        # Execute the search
+        matching_samples = query.order_by(Sample.collected_at.desc()).all()
+        
+        # Re-fetch context for the dashboard
+        sites = Site.query.all()
+        all_species = sorted([r[0] for r in db.session.query(Carcass.species).distinct().filter(Carcass.species.isnot(None)).all()])
+        all_sample_types = sorted([r[0] for r in db.session.query(Sample.sample_type).distinct().filter(Sample.sample_type.isnot(None)).all()])
+        
+        return render_template(
+            'index.html', 
+            sites=sites, 
+            all_species=all_species, 
+            all_sample_types=all_sample_types,
+            label_results=matching_samples,
+            selected_species=species,
+            selected_type=sample_type
+        )
 
     # ---------------- RESET ADMIN PW (utility) ----------------
     @app.route('/reset_admin_pw')
