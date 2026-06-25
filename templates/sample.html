@@ -1,11 +1,10 @@
-<!-- force update -->
 {% extends "base.html" %}
 {% block content %}
 
 <div class="row justify-content-center">
   <div class="col-lg-7 col-md-9">
 
-    <div class="card shadow-sm p-4">
+    <div class="card shadow-sm p-4 mb-4">
 
       <h3 class="mb-3">
         <i class="fa-solid fa-vial me-2"></i>
@@ -52,6 +51,19 @@
         </tbody>
       </table>
 
+      <div class="card shadow-sm mb-4 border-{% if s.status == 'Processed' %}success{% else %}warning{% endif %}">
+        <div class="card-header bg-{% if s.status == 'Processed' %}success text-white{% else %}warning{% endif %}">
+          <i class="fa-solid fa-flask-vial me-2"></i> <strong>Lab Status: {{ s.status or 'Pending' }}</strong>
+        </div>
+        <div class="card-body bg-light">
+          <h6 class="text-muted mb-2">Processing Results:</h6>
+          {% if s.processing_result %}
+            <p class="mb-0" style="white-space: pre-wrap;">{{ s.processing_result }}</p>
+          {% else %}
+            <p class="text-muted fst-italic mb-0">No lab results have been recorded for this sample yet.</p>
+          {% endif %}
+        </div>
+      </div>
       <h5 class="mt-4">QR Label</h5>
       <div class="text-center">
         <img
@@ -62,21 +74,20 @@
         >
       </div>
 
+      {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <div class="mt-4 pt-3 border-top text-end">
+          <div class="d-inline-flex gap-2">
+            <a href="{{ url_for('edit_sample', sample_id=s.id) }}" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen"></i> Edit Sample</a>
+            <form action="{{ url_for('delete_sample', sample_id=s.id) }}" method="POST" onsubmit="return confirm('Delete this Sample?');">
+              <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i> Delete Sample</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+
     </div>
 
   </div>
 </div>
-
-
-    {% if current_user.is_authenticated and current_user.role == 'admin' %}
-      <div class="mt-4 pt-3 border-top text-end">
-        <div class="d-inline-flex gap-2">
-          <a href="{{ url_for('edit_sample', sample_id=s.id) }}" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen"></i> Edit Sample</a>
-          <form action="{{ url_for('delete_sample', sample_id=s.id) }}" method="POST" onsubmit="return confirm('Delete this Sample?');">
-            <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i> Delete Sample</button>
-          </form>
-        </div>
-      </div>
-    {% endif %}
 
 {% endblock %}
