@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <div class="d-flex flex-wrap gap-2 mb-4 mt-2">
   <a href="{{ url_for('new_carcass') }}" class="btn btn-primary btn-lg shadow-sm">
     <i class="fa-solid fa-paw me-2"></i> Record Animal Encounter
@@ -170,5 +171,18 @@
     </div>
   </div>
 </div>
-
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Target the species dropdown in the Find Sample Labels form
+  const searchSpeciesSelect = document.querySelector('select[name="species"]');
+  
+  if (searchSpeciesSelect) {
+    new TomSelect(searchSpeciesSelect, {
+      create: false,
+      sortField: { field: "text", direction: "asc" },
+      placeholder: "Search species..."
+    });
+  }
+});
+</script>
 {% endblock %}
