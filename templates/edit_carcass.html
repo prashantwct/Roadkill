@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
 <div class="row justify-content-center mt-3">
   <div class="col-lg-8">
     <div class="card shadow-sm p-4">
@@ -35,8 +38,8 @@
 
           <div class="col-md-6 mb-3">
             <label class="form-label fw-bold">Species</label>
-            <select name="species_select" id="speciesSelect" class="form-select" onchange="checkSpeciesOther()">
-              </select>
+            
+            <select name="species_select" id="speciesSelect" class="form-select" placeholder="Search for species..."></select>
             
             <div id="speciesCustomDiv" class="mt-2" style="display:none;">
               <input name="species_custom" id="speciesCustomInput" class="form-control" placeholder="Type species name...">
@@ -72,35 +75,62 @@
 
 <script>
 const speciesMap = {
-  "Wild Animal": ["Jackal", "Jungle Cat", "Civet", "Other"],
-  "Domestic Animal": ["Cattle", "Dog", "Buffalo", "Cat", "Other"],
+  "Wild Animal": [
+    "Barking Deer (Muntjac)", "Barasingha (Swamp Deer)", "Blackbuck", "Chinkara (Indian Gazelle)",
+    "Chital (Spotted Deer)", "Civet (Asian Palm / Small Indian)", "Dhole (Wild Dog)", 
+    "Four-horned Antelope (Chousingha)", "Gaur (Indian Bison)", "Golden Jackal", 
+    "Gray Langur (Hanuman Langur)", "Honey Badger (Ratel)", "Indian Boar (Wild Boar)", 
+    "Indian Crested Porcupine", "Indian Fox", "Indian Hare", "Indian Pangolin", 
+    "Indian Wolf", "Jungle Cat", "Leopard", "Mongoose", "Monitor Lizard", 
+    "Nilgai (Blue Bull)", "Peafowl", "Rhesus Macaque", "Rusty-spotted Cat", 
+    "Sambar Deer", "Sloth Bear", "Snake (Non-Venomous)", "Snake (Venomous)", 
+    "Striped Hyena", "Tiger", "Turtle / Tortoise", "Other"
+  ],
+  "Domestic Animal": [
+    "Buffalo (Water Buffalo)", "Cat", "Cattle (Cow / Bull)", "Dog", "Donkey / Horse", 
+    "Goat", "Pig", "Poultry / Fowl", "Sheep", "Other"
+  ],
   "Unknown": ["Unknown", "Other"]
 };
 
+let speciesTomSelect = null;
+
 function updateSpeciesOptions() {
   const typeSelect = document.getElementById('animalType');
-  const speciesSelect = document.getElementById('speciesSelect');
   const type = typeSelect.value;
   const options = speciesMap[type] || ["Unknown", "Other"];
+  const selectEl = document.getElementById('speciesSelect');
 
-  // Save selection if trying to persist, otherwise just reset
-  speciesSelect.innerHTML = "";
+  if (speciesTomSelect) {
+    speciesTomSelect.destroy();
+  }
+
+  selectEl.innerHTML = "";
   options.forEach(opt => {
     const el = document.createElement("option");
     el.value = opt;
     el.textContent = opt;
-    speciesSelect.appendChild(el);
+    selectEl.appendChild(el);
   });
   
+  speciesTomSelect = new TomSelect("#speciesSelect", {
+    create: false,
+    sortField: { field: "text", direction: "asc" }
+  });
+
+  speciesTomSelect.on('change', function() {
+    checkSpeciesOther();
+  });
+
   checkSpeciesOther();
 }
 
 function checkSpeciesOther() {
-  const speciesSelect = document.getElementById('speciesSelect');
+  const selectVal = document.getElementById('speciesSelect').value;
   const customDiv = document.getElementById('speciesCustomDiv');
   const customInput = document.getElementById('speciesCustomInput');
 
-  if (speciesSelect.value === 'Other') {
+  if (selectVal === 'Other') {
     customDiv.style.display = 'block';
     customInput.required = true;
   } else {
@@ -109,33 +139,25 @@ function checkSpeciesOther() {
   }
 }
 
-// Initialization Logic to handle saved data
 document.addEventListener("DOMContentLoaded", function() {
   const savedSpecies = "{{ c.species }}";
   
-  // 1. Populate dropdown based on the loaded Animal Type
+  // Load standard options based on saved animal_type
   updateSpeciesOptions();
   
-  const speciesSelect = document.getElementById('speciesSelect');
-  const customInput = document.getElementById('speciesCustomInput');
-
-  // 2. Try to select the saved species in the dropdown
-  let found = false;
-  for(let i=0; i<speciesSelect.options.length; i++){
-    if(speciesSelect.options[i].value === savedSpecies){
-      speciesSelect.selectedIndex = i;
-      found = true;
-      break;
+  if (savedSpecies && savedSpecies !== 'None') {
+    // Check if the saved species exists in our new searchable list
+    const hasOption = Object.values(speciesTomSelect.options).some(opt => opt.value === savedSpecies);
+    
+    if (hasOption) {
+      // It exists! Select it in the search box
+      speciesTomSelect.setValue(savedSpecies);
+    } else {
+      // It was a custom entry previously. Select 'Other' and fill the text box.
+      speciesTomSelect.setValue('Other');
+      document.getElementById('speciesCustomInput').value = savedSpecies;
     }
-  }
-  
-  // 3. If not found in list (and not empty), it must be a custom "Other" value
-  if(!found && savedSpecies && savedSpecies !== 'None') {
-    speciesSelect.value = 'Other';
-    checkSpeciesOther(); // Show the input
-    customInput.value = savedSpecies;
   }
 });
 </script>
-
 {% endblock %}
