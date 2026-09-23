@@ -8,7 +8,8 @@
     <div class="text-end">
       <a class="btn btn-sm btn-outline-primary me-2" href="{{ url_for('manage_users') }}">👥 Manage Users</a>
       <a class="btn btn-sm btn-outline-success me-2" href="{{ url_for('new_site') }}">➕ Add Site</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('export_samples') }}">📦 Export CSV</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('export_samples') }}">📦 Export Samples</a>
+      <a class="btn btn-sm btn-outline-secondary ms-2" href="{{ url_for('export_encounters') }}">📍 Export Encounters (GPS)</a>
     </div>
   </div>
 
@@ -44,7 +45,7 @@
     <div class="col-6 col-md-3">
       <div class="card shadow-sm h-100">
         <div class="card-body">
-          <h6 class="card-subtitle mb-2 text-muted">Carcasses</h6>
+          <h6 class="card-subtitle mb-2 text-muted">Encounters</h6>
           <h3 class="card-title">{{ total_carcasses }}</h3>
         </div>
       </div>
@@ -66,8 +67,9 @@
     <div class="d-flex flex-wrap gap-2">
       <a class="btn btn-outline-primary btn-sm" href="{{ url_for('manage_users') }}">👥 Manage Users</a>
       <a class="btn btn-outline-success btn-sm" href="{{ url_for('new_site') }}">➕ Add New Site</a>
-      <a class="btn btn-outline-info btn-sm" href="{{ url_for('new_carcass') }}">🧍 Record Carcass</a>
+      <a class="btn btn-outline-info btn-sm" href="{{ url_for('new_carcass') }}">🐾 Record Encounter</a>
       <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_samples') }}">📦 Export Samples (CSV)</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_encounters') }}">📍 Export Encounters with GPS (CSV)</a>
     </div>
   </div>
 
@@ -76,7 +78,7 @@
     <div class="col-12 col-lg-6 mb-4">
       <div class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">Recent Carcasses</h6>
+          <h6 class="mb-0">Recent Encounters</h6>
           <small class="text-muted">Latest first</small>
         </div>
         <div class="card-body p-0">
@@ -103,7 +105,7 @@
             </div>
           {% else %}
             <div class="p-3">
-              <p class="mb-0 text-muted">No carcasses found.</p>
+              <p class="mb-0 text-muted">No encounters found.</p>
             </div>
           {% endif %}
         </div>
@@ -125,7 +127,7 @@
                 <thead class="table-light">
                   <tr>
                     <th>Label</th>
-                    <th>Carcass</th>
+                    <th>Encounter</th>
                     <th>Type</th>
                     <th>Collected</th>
                     <th></th>

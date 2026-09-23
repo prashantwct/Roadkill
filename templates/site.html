@@ -20,7 +20,7 @@
 
       <h4 class="mb-3">
         <i class="fa-solid fa-paw me-2"></i>
-        Carcasses Found Here
+        Encounters Recorded Here
       </h4>
 
       {% if carcasses %}
@@ -46,13 +46,13 @@
           {% endfor %}
         </ul>
       {% else %}
-        <p class="text-muted">No carcasses recorded at this site yet.</p>
+        <p class="text-muted">No encounters recorded at this site yet.</p>
       {% endif %}
 
       <a href="{{ url_for('new_carcass', site_id=s.id) }}"
          class="btn btn-primary w-100">
         <i class="fa-solid fa-plus me-1"></i>
-        Record New Carcass
+        Record New Encounter
       </a>
 
     </div>
