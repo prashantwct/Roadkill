@@ -570,28 +570,72 @@ def register_routes(app):
 
         cw.writerow([
             'label', 'uuid', 'sample_type', 'collected_by', 'collected_at_IST',
-            'storage', 'notes', 'carcass_id', 'carcass_code', 'site_code', 'species'
+            'storage', 'notes', 'encounter_id', 'encounter_code', 'encounter_type',
+            'site_code', 'species', 'latitude', 'longitude'
         ])
 
         for s in samples:
+            e = s.carcass
             cw.writerow([
                 s.label,
                 s.uuid,
                 s.sample_type,
                 s.collected_by,
-                s.collected_at.strftime('%Y-%m-%d %H:%M:%S') + ' IST',
+                s.collected_at.strftime('%Y-%m-%d %H:%M:%S') + ' IST' if s.collected_at else '',
                 s.storage,
                 s.notes,
                 s.carcass_id,
-                s.carcass.code if s.carcass else '',
-                s.carcass.site.code if s.carcass and s.carcass.site else '',
-                s.carcass.species if s.carcass else ''
+                e.code if e else '',
+                e.encounter_type if e else '',
+                e.site.code if e and e.site else '',
+                e.species if e else '',
+                e.latitude if e and e.latitude is not None else '',
+                e.longitude if e and e.longitude is not None else ''
             ])
 
         output = BytesIO(si.getvalue().encode('utf-8'))
         output.seek(0)
 
         filename = f"samples_{ist_now().strftime('%Y%m%d_%H%M')}.csv"
+        return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
+
+    @app.route('/encounters/export')
+    @login_required
+    def export_encounters():
+        """One row per encounter (roadkill or live animal) with GPS coordinates."""
+        encounters = Carcass.query.order_by(Carcass.datetime_found).all()
+
+        si = StringIO()
+        cw = csv.writer(si)
+
+        cw.writerow([
+            'encounter_id', 'encounter_code', 'encounter_type', 'animal_type', 'species',
+            'site_code', 'site_name', 'datetime_found_IST', 'latitude', 'longitude',
+            'reporter', 'sample_count', 'sample_labels', 'notes'
+        ])
+
+        for e in encounters:
+            cw.writerow([
+                e.id,
+                e.code,
+                e.encounter_type,
+                e.animal_type,
+                e.species,
+                e.site.code if e.site else '',
+                e.site.name if e.site else '',
+                e.datetime_found.strftime('%Y-%m-%d %H:%M:%S') + ' IST' if e.datetime_found else '',
+                e.latitude if e.latitude is not None else '',
+                e.longitude if e.longitude is not None else '',
+                e.reporter.username if e.reporter else '',
+                len(e.samples),
+                '; '.join(s.label for s in e.samples),
+                e.notes
+            ])
+
+        output = BytesIO(si.getvalue().encode('utf-8'))
+        output.seek(0)
+
+        filename = f"encounters_{ist_now().strftime('%Y%m%d_%H%M')}.csv"
         return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
 
     # ---------------- REVERSE SEARCH BY SUFFIX ----------------
